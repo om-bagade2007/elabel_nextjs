@@ -6,7 +6,7 @@ import IngredientsTable from '@/components/tables/IngredientsTable';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiFetch, apiRequest } from '@/lib/queryClient';
 import type { Ingredient } from '@shared/schema';
 
 export default function IngredientsPage() {
@@ -19,7 +19,7 @@ export default function IngredientsPage() {
   const { data: ingredients = [], isLoading } = useQuery({
     queryKey: ['/api/ingredients'],
     queryFn: async () => {
-      const response = await fetch('/api/ingredients');
+      const response = await apiFetch('/api/ingredients');
       if (!response.ok) throw new Error('Failed to fetch ingredients');
       return response.json() as Promise<Ingredient[]>;
     },
@@ -74,10 +74,13 @@ export default function IngredientsPage() {
     mutationFn: (file: File) => {
       const formData = new FormData();
       formData.append('file', file);
-      return fetch('/api/ingredients/import', {
+      return apiFetch('/api/ingredients/import', {
         method: 'POST',
         body: formData,
-      }).then((res) => res.json());
+      }).then(async (res) => {
+        if (!res.ok) throw new Error('Failed to import ingredients');
+        return res.json();
+      });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/ingredients'] });
@@ -97,8 +100,11 @@ export default function IngredientsPage() {
 
   const exportIngredientsMutation = useMutation({
     mutationFn: () =>
-      fetch('/api/ingredients/export')
-        .then((res) => res.blob())
+      apiFetch('/api/ingredients/export')
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to export ingredients');
+          return res.blob();
+        })
         .then((blob) => {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');

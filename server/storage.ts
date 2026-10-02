@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import {
   users,
   products,
@@ -26,21 +26,23 @@ export interface IStorage {
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
 
   // Product methods
-  getProducts(): Promise<Product[]>;
-  getProduct(id: number): Promise<Product | undefined>;
+  getProducts(ownerId: string): Promise<Product[]>;
+  getProduct(id: number, ownerId: string): Promise<Product | undefined>;
+  getPublicProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
-  updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
-  deleteProduct(id: number): Promise<boolean>;
+  updateProduct(id: number, ownerId: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
+  deleteProduct(id: number, ownerId: string): Promise<boolean>;
 
   // Ingredient methods
-  getIngredients(): Promise<Ingredient[]>;
-  getIngredient(id: number): Promise<Ingredient | undefined>;
+  getIngredients(ownerId: string): Promise<Ingredient[]>;
+  getIngredient(id: number, ownerId: string): Promise<Ingredient | undefined>;
   createIngredient(ingredient: InsertIngredient): Promise<Ingredient>;
   updateIngredient(
     id: number,
+    ownerId: string,
     ingredient: Partial<InsertIngredient>,
   ): Promise<Ingredient | undefined>;
-  deleteIngredient(id: number): Promise<boolean>;
+  deleteIngredient(id: number, ownerId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -71,11 +73,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Product methods
-  async getProducts(): Promise<Product[]> {
-    return await db.select().from(products).orderBy(products.name);
+  async getProducts(ownerId: string): Promise<Product[]> {
+    return await db.select().from(products).where(eq(products.ownerId, ownerId)).orderBy(products.name);
   }
 
-  async getProduct(id: number): Promise<Product | undefined> {
+  async getProduct(id: number, ownerId: string): Promise<Product | undefined> {
+    const result = await db
+      .select()
+      .from(products)
+      .where(and(eq(products.id, id), eq(products.ownerId, ownerId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getPublicProduct(id: number): Promise<Product | undefined> {
     const result = await db.select().from(products).where(eq(products.id, id)).limit(1);
     return result[0];
   }
@@ -85,23 +96,42 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined> {
-    const result = await db.update(products).set(product).where(eq(products.id, id)).returning();
+  async updateProduct(
+    id: number,
+    ownerId: string,
+    product: Partial<InsertProduct>,
+  ): Promise<Product | undefined> {
+    const result = await db
+      .update(products)
+      .set(product)
+      .where(and(eq(products.id, id), eq(products.ownerId, ownerId)))
+      .returning();
     return result[0];
   }
 
-  async deleteProduct(id: number): Promise<boolean> {
-    const result = await db.delete(products).where(eq(products.id, id)).returning();
+  async deleteProduct(id: number, ownerId: string): Promise<boolean> {
+    const result = await db
+      .delete(products)
+      .where(and(eq(products.id, id), eq(products.ownerId, ownerId)))
+      .returning();
     return result.length > 0;
   }
 
   // Ingredient methods
-  async getIngredients(): Promise<Ingredient[]> {
-    return await db.select().from(ingredients).orderBy(ingredients.name);
+  async getIngredients(ownerId: string): Promise<Ingredient[]> {
+    return await db
+      .select()
+      .from(ingredients)
+      .where(eq(ingredients.ownerId, ownerId))
+      .orderBy(ingredients.name);
   }
 
-  async getIngredient(id: number): Promise<Ingredient | undefined> {
-    const result = await db.select().from(ingredients).where(eq(ingredients.id, id)).limit(1);
+  async getIngredient(id: number, ownerId: string): Promise<Ingredient | undefined> {
+    const result = await db
+      .select()
+      .from(ingredients)
+      .where(and(eq(ingredients.id, id), eq(ingredients.ownerId, ownerId)))
+      .limit(1);
     return result[0];
   }
 
@@ -112,18 +142,22 @@ export class DatabaseStorage implements IStorage {
 
   async updateIngredient(
     id: number,
+    ownerId: string,
     ingredient: Partial<InsertIngredient>,
   ): Promise<Ingredient | undefined> {
     const result = await db
       .update(ingredients)
       .set(ingredient)
-      .where(eq(ingredients.id, id))
+      .where(and(eq(ingredients.id, id), eq(ingredients.ownerId, ownerId)))
       .returning();
     return result[0];
   }
 
-  async deleteIngredient(id: number): Promise<boolean> {
-    const result = await db.delete(ingredients).where(eq(ingredients.id, id)).returning();
+  async deleteIngredient(id: number, ownerId: string): Promise<boolean> {
+    const result = await db
+      .delete(ingredients)
+      .where(and(eq(ingredients.id, id), eq(ingredients.ownerId, ownerId)))
+      .returning();
     return result.length > 0;
   }
 }

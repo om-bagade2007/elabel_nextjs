@@ -25,7 +25,7 @@ import {
 import { operatorTypeOptions, wineTypeOptions } from '@/lib/mock-data';
 import type { Product } from '@shared/schema';
 import { insertProductSchema } from '@shared/schema';
-import { apiRequest } from '@/lib/queryClient';
+import { apiFetch, apiRequest } from '@/lib/queryClient';
 import { Label } from '../ui/label';
 
 const productFormSchema = insertProductSchema;
@@ -858,7 +858,7 @@ export default function ProductForm({
                             formData.append('file', file);
 
                             try {
-                              const url = await fetch('/api/get-url', {
+                              const url = await apiFetch('/api/get-url', {
                                 method: 'POST',
                                 body: formData,
                               });

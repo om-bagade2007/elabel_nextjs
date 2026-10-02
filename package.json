@@ -4,7 +4,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "tsx server/index.ts",
+    "dev": "node ./scripts/dev.mjs server/index.ts",
     "build": "vite build && esbuild server/production.ts --bundle --platform=node --format=esm --packages=external --sourcemap --outfile=dist/index.js",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "check": "tsc",

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, text, serial, integer, boolean, timestamp, varchar, uuid } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 
 export const users = pgTable('users', {
@@ -51,6 +51,7 @@ export const products = pgTable('products', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   createdBy: integer('created_by'),
+  ownerId: uuid('owner_id'),
 });
 
 export const ingredients = pgTable('ingredients', {
@@ -63,6 +64,7 @@ export const ingredients = pgTable('ingredients', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   createdBy: integer('created_by'),
+  ownerId: uuid('owner_id'),
 });
 
 export const insertUserSchema = z.object({
@@ -124,6 +126,7 @@ export const insertProductSchema = z.object({
   redirectLink: z.string().optional(),
   imageUrl: z.string().optional(),
   createdBy: z.number().optional(),
+  ownerId: z.string().uuid().optional(),
 });
 
 export const importProductSchema = z.object({
@@ -183,6 +186,7 @@ export const importProductSchema = z.object({
   redirectLink: z.string().optional(),
   imageUrl: z.string().optional(),
   createdBy: z.number().optional(),
+  ownerId: z.string().uuid().optional(),
 });
 
 export const insertIngredientSchema = z.object({
@@ -192,6 +196,7 @@ export const insertIngredientSchema = z.object({
   allergens: z.array(z.string()).optional(),
   details: z.string().optional(),
   createdBy: z.number().optional(),
+  ownerId: z.string().uuid().optional(),
 });
 
 export type InsertUser = typeof users.$inferInsert;

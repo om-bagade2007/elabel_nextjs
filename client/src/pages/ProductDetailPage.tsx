@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocation, useRoute } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiFetch, apiRequest } from '@/lib/queryClient';
 import ProductPreviewModal from '@/components/modals/ProductPreviewModal';
 import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal';
 import type { Product } from '@shared/schema';
@@ -76,7 +76,7 @@ export default function ProductDetailPage() {
       const formData = new FormData();
       formData.append('image', file);
 
-      const response = await fetch(`/api/products/${params?.id}/image`, {
+      const response = await apiFetch(`/api/products/${params?.id}/image`, {
         method: 'POST',
         body: formData,
       });

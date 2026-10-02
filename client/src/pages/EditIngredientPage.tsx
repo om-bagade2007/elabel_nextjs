@@ -3,7 +3,7 @@ import { useParams } from 'wouter';
 import IngredientForm from '@/components/forms/IngredientForm';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiFetch, apiRequest } from '@/lib/queryClient';
 import type { Ingredient } from '@shared/schema';
 
 export default function EditIngredientPage() {
@@ -21,7 +21,7 @@ export default function EditIngredientPage() {
   const { data: ingredient, isLoading } = useQuery({
     queryKey: ['/api/ingredients', ingredientId],
     queryFn: async () => {
-      const response = await fetch(`/api/ingredients/${ingredientId}`);
+      const response = await apiFetch(`/api/ingredients/${ingredientId}`);
       if (!response.ok) throw new Error('Failed to fetch ingredient');
       return response.json() as Promise<Ingredient>;
     },

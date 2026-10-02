@@ -21,7 +21,7 @@ const PublicProductPage = () => {
       }
 
       try {
-        const res = await apiRequest(`/api/products/${id}`);
+        const res = await apiRequest(`/api/public/products/${id}`);
         if (!cancelled) setProduct(res.data || res);
       } catch {
         if (!cancelled) setLoadError('This product could not be loaded. Please try again later.');

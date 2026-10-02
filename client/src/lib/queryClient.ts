@@ -1,4 +1,17 @@
 import { QueryClient, QueryFunction } from '@tanstack/react-query';
+import { supabase } from './supabase';
+
+export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+
+  const headers = new Headers(init.headers);
+  if (data.session?.access_token) {
+    headers.set('Authorization', `Bearer ${data.session.access_token}`);
+  }
+
+  return fetch(input, { ...init, headers, credentials: 'include' });
+}
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -16,7 +29,7 @@ export async function apiRequest(
 ): Promise<any> {
   const { method = 'GET', data } = options || {};
 
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method,
     headers: data ? { 'Content-Type': 'application/json' } : {},
     body: data ? JSON.stringify(data) : undefined,
@@ -36,7 +49,7 @@ type UnauthorizedBehavior = 'returnNull' | 'throw';
 export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    const res = await apiFetch(queryKey[0] as string, {
       credentials: 'include',
     });
 

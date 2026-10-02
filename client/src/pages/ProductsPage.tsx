@@ -8,7 +8,7 @@ import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiFetch, apiRequest } from '@/lib/queryClient';
 import type { Product } from '@shared/schema';
 
 export default function ProductsPage() {
@@ -72,10 +72,13 @@ export default function ProductsPage() {
     mutationFn: (file: File) => {
       const formData = new FormData();
       formData.append('file', file);
-      return fetch('/api/products/import', {
+      return apiFetch('/api/products/import', {
         method: 'POST',
         body: formData,
-      }).then((res) => res.json());
+      }).then(async (res) => {
+        if (!res.ok) throw new Error('Failed to import products');
+        return res.json();
+      });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
@@ -95,8 +98,11 @@ export default function ProductsPage() {
 
   const exportProductsMutation = useMutation({
     mutationFn: () =>
-      fetch('/api/products/export')
-        .then((res) => res.blob())
+      apiFetch('/api/products/export')
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to export products');
+          return res.blob();
+        })
         .then((blob) => {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
