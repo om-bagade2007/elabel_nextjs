@@ -15,10 +15,15 @@ export default defineConfig({
     ...(process.env.NODE_ENV !== 'production' && process.env.REPL_ID !== undefined
       ? [await import('@replit/vite-plugin-cartographer').then((m) => m.cartographer())]
       : []),
-    sentryVitePlugin({
-      org: "canspirit-ai",
-      project: "elabel"
-    })
+    ...(process.env.SENTRY_AUTH_TOKEN
+      ? [
+          sentryVitePlugin({
+            org: 'canspirit-ai',
+            project: 'elabel',
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+          }),
+        ]
+      : []),
   ],
   resolve: {
     alias: {

@@ -370,8 +370,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Sample row data:', data[0]);
       console.log('All column names from first row:', Object.keys(data[0] || {}));
 
-      const importedProducts = [];
-      const errors = [];
+      const importedProducts: Awaited<ReturnType<typeof storage.createProduct>>[] = [];
+      const errors: string[] = [];
 
       for (let i = 0; i < data.length; i++) {
         try {
@@ -468,8 +468,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const worksheet = workbook.Sheets[sheetName];
       const data = XLSX.utils.sheet_to_json(worksheet);
 
-      const importedIngredients = [];
-      const errors = [];
+      const importedIngredients: Awaited<ReturnType<typeof storage.createIngredient>>[] = [];
+      const errors: string[] = [];
 
       for (let i = 0; i < data.length; i++) {
         try {

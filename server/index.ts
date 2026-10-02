@@ -139,8 +139,7 @@ app.get('/api/sentry-test', (req, res) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || 'Internal Server Error';
 
-    res.status(status).json({ message });
-    throw err;
+    return res.status(status).json({ message });
   });
 
   // importantly only setup vite in development and after

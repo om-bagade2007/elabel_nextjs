@@ -1,5 +1,4 @@
 import { pgTable, text, serial, integer, boolean, timestamp, varchar } from 'drizzle-orm/pg-core';
-import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
 export const users = pgTable('users', {
@@ -29,6 +28,13 @@ export const products = pgTable('products', {
   kj: text('kj'),
   fat: text('fat'),
   carbohydrates: text('carbohydrates'),
+  saturates: text('saturates'),
+  sugar: text('sugar'),
+  protein: text('protein'),
+  salt: text('salt'),
+  pregnancyWarning: boolean('pregnancy_warning').default(false),
+  ageWarning: boolean('age_warning').default(false),
+  drivingWarning: boolean('driving_warning').default(false),
   organic: boolean('organic').default(false),
   vegetarian: boolean('vegetarian').default(false),
   vegan: boolean('vegan').default(false),
@@ -59,11 +65,11 @@ export const ingredients = pgTable('ingredients', {
   createdBy: integer('created_by'),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  email: true,
-  password: true,
-});
+export const insertUserSchema = z.object({
+  username: z.string(),
+  email: z.string().email(),
+  password: z.string(),
+} as const);
 
 export const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -82,10 +88,42 @@ export const registerSchema = z
     path: ['confirmPassword'],
   });
 
-export const insertProductSchema = createInsertSchema(products).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertProductSchema = z.object({
+  name: z.string(),
+  brand: z.string().optional(),
+  netVolume: z.string().optional(),
+  vintage: z.string().optional(),
+  wineType: z.string().optional(),
+  sugarContent: z.string().optional(),
+  appellation: z.string().optional(),
+  alcoholContent: z.string().optional(),
+  packagingGases: z.string().optional(),
+  portionSize: z.string().optional(),
+  kcal: z.string().optional(),
+  kj: z.string().optional(),
+  fat: z.string().optional(),
+  carbohydrates: z.string().optional(),
+  saturates: z.string().optional(),
+  sugar: z.string().optional(),
+  protein: z.string().optional(),
+  salt: z.string().optional(),
+  pregnancyWarning: z.boolean().optional(),
+  ageWarning: z.boolean().optional(),
+  drivingWarning: z.boolean().optional(),
+  organic: z.boolean().optional(),
+  vegetarian: z.boolean().optional(),
+  vegan: z.boolean().optional(),
+  operatorType: z.string().optional(),
+  operatorName: z.string().optional(),
+  operatorAddress: z.string().optional(),
+  operatorInfo: z.string().optional(),
+  countryOfOrigin: z.string().optional(),
+  sku: z.string().optional(),
+  ean: z.string().optional(),
+  externalLink: z.string().optional(),
+  redirectLink: z.string().optional(),
+  imageUrl: z.string().optional(),
+  createdBy: z.number().optional(),
 });
 
 export const importProductSchema = z.object({
@@ -121,6 +159,13 @@ export const importProductSchema = z.object({
     .union([z.string(), z.number()])
     .transform((val) => String(val))
     .optional(),
+  saturates: z.union([z.string(), z.number()]).transform(String).optional(),
+  sugar: z.union([z.string(), z.number()]).transform(String).optional(),
+  protein: z.union([z.string(), z.number()]).transform(String).optional(),
+  salt: z.union([z.string(), z.number()]).transform(String).optional(),
+  pregnancyWarning: z.boolean().default(false),
+  ageWarning: z.boolean().default(false),
+  drivingWarning: z.boolean().default(false),
   organic: z.boolean().default(false),
   vegetarian: z.boolean().default(false),
   vegan: z.boolean().default(false),
@@ -140,15 +185,18 @@ export const importProductSchema = z.object({
   createdBy: z.number().optional(),
 });
 
-export const insertIngredientSchema = createInsertSchema(ingredients).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertIngredientSchema = z.object({
+  name: z.string(),
+  category: z.string().optional(),
+  eNumber: z.string().optional(),
+  allergens: z.array(z.string()).optional(),
+  details: z.string().optional(),
+  createdBy: z.number().optional(),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
-export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type InsertProduct = typeof products.$inferInsert;
 export type Product = typeof products.$inferSelect;
-export type InsertIngredient = z.infer<typeof insertIngredientSchema>;
+export type InsertIngredient = typeof ingredients.$inferInsert;
 export type Ingredient = typeof ingredients.$inferSelect;

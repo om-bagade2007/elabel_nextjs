@@ -7,18 +7,40 @@ import { useParams } from 'wouter';
 
 const PublicProductPage = () => {
   const params = useParams();
-  if (!params.id) return <div>Product not found</div>;
-
-  const id = parseInt(params.id);
+  const id = params?.id ? Number.parseInt(params.id, 10) : Number.NaN;
   const [product, setProduct] = useState<Product | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchProduct = async () => {
-      const res = await apiRequest(`/api/products/${id}`);
-      setProduct(res.data || res); // depending on how apiRequest returns data
+      if (!Number.isInteger(id) || id < 1) {
+        setLoadError('Product not found');
+        return;
+      }
+
+      try {
+        const res = await apiRequest(`/api/products/${id}`);
+        if (!cancelled) setProduct(res.data || res);
+      } catch {
+        if (!cancelled) setLoadError('This product could not be loaded. Please try again later.');
+      }
     };
-    fetchProduct();
+
+    void fetchProduct();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
+
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 text-gray-500">
+        {loadError}
+      </div>
+    );
+  }
 
   if (!product) {
     return (
