@@ -101,6 +101,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/get-url', requireAuth, uploadBlob.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No image file uploaded' });
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      return res.status(503).json({ error: 'Image storage is not configured on the server.' });
+    }
 
     try {
       const blob = await put(`products/${Date.now()}-${req.file.originalname}`, req.file.buffer, {

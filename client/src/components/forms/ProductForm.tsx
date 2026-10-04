@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { useState } from 'react';
 import { z } from 'zod';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +45,8 @@ export default function ProductForm({
   onCancel,
   isLoading = false,
 }: ProductFormProps) {
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: product
@@ -850,24 +853,38 @@ export default function ProductForm({
                         <Input
                           type="file"
                           accept="image/*"
+                          disabled={isUploadingImage}
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
 
+                            setIsUploadingImage(true);
+                            setImageUploadError(null);
                             const formData = new FormData();
                             formData.append('file', file);
 
                             try {
-                              const url = await apiFetch('/api/get-url', {
+                              const response = await apiFetch('/api/get-url', {
                                 method: 'POST',
                                 body: formData,
                               });
 
-                              const data = await url.json();
-                              field.onChange(data.url); // store URL in form state
+                              const data = await response.json().catch(() => ({}));
+                              if (!response.ok) {
+                                throw new Error(data.error || `Image upload failed (${response.status})`);
+                              }
+                              if (typeof data.url !== 'string' || !data.url) {
+                                throw new Error('Image upload returned no image URL.');
+                              }
+
+                              field.onChange(data.url);
                             } catch (error) {
                               console.error('Upload failed:', error);
-                              alert('Image upload failed. Please try again.');
+                              setImageUploadError(
+                                error instanceof Error ? error.message : 'Image upload failed. Please try again.',
+                              );
+                            } finally {
+                              setIsUploadingImage(false);
                             }
                           }}
                         />
@@ -882,6 +899,14 @@ export default function ProductForm({
                           />
                         </div>
                       )}
+                      {isUploadingImage && (
+                        <p className="text-sm text-muted-foreground">Uploading image…</p>
+                      )}
+                      {imageUploadError && (
+                        <p role="alert" className="text-sm text-destructive">
+                          {imageUploadError}
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -895,8 +920,14 @@ export default function ProductForm({
             <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Creating...' : product ? 'Update Product' : 'Create Product'}
+            <Button type="submit" disabled={isLoading || isUploadingImage}>
+              {isUploadingImage
+                ? 'Uploading image...'
+                : isLoading
+                  ? 'Creating...'
+                  : product
+                    ? 'Update Product'
+                    : 'Create Product'}
             </Button>
           </div>
         </form>
