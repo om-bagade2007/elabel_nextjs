@@ -42,6 +42,14 @@ const passwordSchema = z
 type MagicLinkFormData = z.infer<typeof magicLinkSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
+function getRegistrationErrorMessage(error?: string) {
+  if (error?.toLowerCase().includes('rate limit')) {
+    return 'Supabase has temporarily limited signup emails for this project. Wait for the limit to reset before retrying. If you already completed signup, log in instead. For regular testing, configure custom SMTP in Supabase under Authentication > Emails > SMTP Settings.';
+  }
+
+  return error || 'Please try again';
+}
+
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
   const { loginWithMagicLink, register } = useAuth();
@@ -78,7 +86,7 @@ export default function RegisterPage() {
       } else {
         toast({
           title: 'Failed to send magic link',
-          description: result.error || 'Please try again',
+          description: getRegistrationErrorMessage(result.error),
           variant: 'destructive',
         });
       }
@@ -117,7 +125,7 @@ export default function RegisterPage() {
         console.error('Registration failed:', result.error);
         toast({
           title: 'Registration failed',
-          description: result.error || 'Please try again',
+          description: getRegistrationErrorMessage(result.error),
           variant: 'destructive',
           duration: 6000,
         });
