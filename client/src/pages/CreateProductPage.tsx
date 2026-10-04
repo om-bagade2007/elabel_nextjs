@@ -19,10 +19,10 @@ export default function CreateProductPage() {
       });
       setLocation('/products');
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: 'Error creating product',
-        description: 'Please try again.',
+        description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       });
     },

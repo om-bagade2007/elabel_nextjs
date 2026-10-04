@@ -266,3 +266,12 @@ export const useAuth = create<AuthState>()(
     },
   ),
 );
+
+// Keep the UI's persisted auth flag in sync with Supabase's actual session.
+supabase.auth.onAuthStateChange((_event, session) => {
+  useAuth.setState((state) => ({
+    user: session?.user ?? null,
+    isAuthenticated: !!session?.user,
+    profile: session?.user?.id === state.user?.id ? state.profile : null,
+  }));
+});

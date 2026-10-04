@@ -8,6 +8,7 @@ import { put } from '@vercel/blob';
 import path from 'path';
 import fs from 'fs';
 import * as XLSX from 'xlsx';
+import { ZodError } from 'zod';
 import { getAuthenticatedUserId, requireAuth } from './supabase-auth';
 
 // Create uploads directory if it doesn't exist
@@ -191,16 +192,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post('/api/products', requireAuth, async (req, res) => {
+    let validatedData;
     try {
-      const validatedData = insertProductSchema.omit({ createdBy: true, ownerId: true }).parse(req.body);
+      validatedData = insertProductSchema.omit({ createdBy: true, ownerId: true }).parse(req.body);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: 'Invalid product data', details: error.issues });
+      }
+      console.error('Unexpected product validation error:', error);
+      return res.status(500).json({ error: 'Failed to validate product data' });
+    }
+
+    try {
       const product = await storage.createProduct({
         ...validatedData,
         createdBy: undefined,
         ownerId: getAuthenticatedUserId(req),
       });
-      res.status(201).json(product);
+      return res.status(201).json(product);
     } catch (error) {
-      res.status(400).json({ error: 'Invalid product data', details: error });
+      console.error('Product creation failed:', error);
+      return res.status(500).json({ error: 'Failed to create product' });
     }
   });
 
