@@ -4,6 +4,24 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 
+function getCreateProductErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'string' && error.trim()) return error;
+
+  if (error && typeof error === 'object') {
+    const details = error as { message?: unknown; error?: unknown; details?: unknown };
+    if (typeof details.message === 'string' && details.message.trim()) return details.message;
+    if (typeof details.error === 'string' && details.error.trim()) return details.error;
+    try {
+      return JSON.stringify(error);
+    } catch {
+      // Use the generic message below for non-serializable error objects.
+    }
+  }
+
+  return 'The product request failed without an error message. Check the server terminal for details.';
+}
+
 export default function CreateProductPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -20,9 +38,10 @@ export default function CreateProductPage() {
       setLocation('/products');
     },
     onError: (error) => {
+      console.error('Product creation failed:', error);
       toast({
         title: 'Error creating product',
-        description: error instanceof Error ? error.message : 'Please try again.',
+        description: getCreateProductErrorMessage(error),
         variant: 'destructive',
       });
     },
