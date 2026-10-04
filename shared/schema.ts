@@ -203,5 +203,6 @@ export type InsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertProduct = typeof products.$inferInsert;
 export type Product = typeof products.$inferSelect;
+export type ProductWithPermissions = Product & { canEdit: boolean };
 export type InsertIngredient = typeof ingredients.$inferInsert;
 export type Ingredient = typeof ingredients.$inferSelect;

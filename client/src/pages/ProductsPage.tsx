@@ -9,7 +9,7 @@ import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, apiRequest } from '@/lib/queryClient';
-import type { Product } from '@shared/schema';
+import type { Product, ProductWithPermissions } from '@shared/schema';
 
 export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,7 +21,7 @@ export default function ProductsPage() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: products = [], isLoading } = useQuery<Product[]>({
+  const { data: products = [], isLoading } = useQuery<ProductWithPermissions[]>({
     queryKey: ['/api/products'],
     queryFn: () => apiRequest('/api/products'),
   });

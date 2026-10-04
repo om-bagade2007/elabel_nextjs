@@ -16,14 +16,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useLocation } from 'wouter';
-import type { Product } from '@shared/schema';
+import type { ProductWithPermissions } from '@shared/schema';
 
 interface ProductsTableProps {
-  products: Product[];
-  onEdit?: (product: Product) => void;
-  onDelete?: (product: Product) => void;
-  onDuplicate?: (product: Product) => void;
-  onPreview?: (product: Product) => void;
+  products: ProductWithPermissions[];
+  onEdit?: (product: ProductWithPermissions) => void;
+  onDelete?: (product: ProductWithPermissions) => void;
+  onDuplicate?: (product: ProductWithPermissions) => void;
+  onPreview?: (product: ProductWithPermissions) => void;
 }
 
 export default function ProductsTable({
@@ -112,14 +112,16 @@ export default function ProductsTable({
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEdit?.(product)}
-                    className="text-gray-600 hover:text-primary p-1"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
+                  {product.canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onEdit?.(product)}
+                      className="text-gray-600 hover:text-primary p-1"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  )}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -135,17 +137,21 @@ export default function ProductsTable({
                         <FileText className="w-4 h-4 mr-2" />
                         Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit?.(product)}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => onDelete?.(product)}
-                        className="text-red-600 focus:text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
+                      {product.canEdit && (
+                        <>
+                          <DropdownMenuItem onClick={() => onEdit?.(product)}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => onDelete?.(product)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </>
+                      )}
                       <DropdownMenuItem onClick={() => onDuplicate?.(product)}>
                         <Copy className="w-4 h-4 mr-2" />
                         Duplicate

@@ -117,8 +117,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Products routes
   app.get('/api/products', requireAuth, async (req, res) => {
     try {
-      const products = await storage.getProducts(getAuthenticatedUserId(req));
-      res.json(products);
+      const userId = getAuthenticatedUserId(req);
+      const products = await storage.getProducts();
+      res.json(
+        products.map(({ ownerId, createdBy, ...product }) => ({
+          ...product,
+          canEdit: ownerId === userId,
+        })),
+      );
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch products' });
     }
@@ -128,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/products/export', requireAuth, async (req, res) => {
     try {
       console.log('Starting products export...');
-      const products = await storage.getProducts(getAuthenticatedUserId(req));
+      const products = await storage.getProducts();
       console.log(`Found ${products.length} products to export`);
 
       // Transform products for Excel export - specific fields only
@@ -183,9 +189,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/products/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const product = await storage.getProduct(id, getAuthenticatedUserId(req));
+      const userId = getAuthenticatedUserId(req);
+      const product = await storage.getPublicProduct(id);
       if (!product) return res.status(404).json({ error: 'Product not found' });
-      return res.json(product);
+      const { ownerId, createdBy, ...visibleProduct } = product;
+      return res.json({ ...visibleProduct, canEdit: ownerId === userId });
     } catch {
       return res.status(500).json({ error: 'Failed to fetch product' });
     }

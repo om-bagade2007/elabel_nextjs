@@ -12,7 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, apiRequest } from '@/lib/queryClient';
 import ProductPreviewModal from '@/components/modals/ProductPreviewModal';
 import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal';
-import type { Product } from '@shared/schema';
+import type { ProductWithPermissions } from '@shared/schema';
 
 export default function ProductDetailPage() {
   const [, setLocation] = useLocation();
@@ -23,7 +23,7 @@ export default function ProductDetailPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: product, isLoading } = useQuery<Product>({
+  const { data: product, isLoading } = useQuery<ProductWithPermissions>({
     queryKey: ['/api/products', params?.id],
     queryFn: () => apiRequest(`/api/products/${params?.id}`),
     enabled: !!params?.id,
@@ -239,10 +239,12 @@ export default function ProductDetailPage() {
             <Edit className="w-4 h-4 mr-2" />
             Edit
           </Button> */}
-          <Button onClick={handleDeleteProduct} variant="destructive">
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete
-          </Button>
+          {product.canEdit && (
+            <Button onClick={handleDeleteProduct} variant="destructive">
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </Button>
+          )}
           <Button onClick={handleDuplicateProduct} variant="outline">
             <Copy className="w-4 h-4 mr-2" />
             Duplicate
@@ -352,33 +354,38 @@ export default function ProductDetailPage() {
                     <span className="text-gray-500">Product Image Placeholder</span>
                   )}
                 </div>
-                <div className="flex space-x-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={handleImageUpload}
-                    disabled={uploadImageMutation.isPending}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {product.imageUrl ? 'Change Image' : 'Upload Image'}
-                  </Button>
-                  {product.imageUrl && (
+                {product.canEdit && (
+                  <div className="flex space-x-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
                     <Button
-                      variant="destructive"
-                      onClick={handleDeleteImage}
-                      disabled={deleteImageMutation.isPending}
+                      variant="outline"
+                      onClick={handleImageUpload}
+                      disabled={uploadImageMutation.isPending}
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Image
+                      <Upload className="w-4 h-4 mr-2" />
+                      {product.imageUrl ? 'Change Image' : 'Upload Image'}
                     </Button>
-                  )}
-                </div>
+                    {product.imageUrl && (
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteImage}
+                        disabled={deleteImageMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Image
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {!product.canEdit && (
+                  <p className="text-sm text-gray-500">Only the product owner can change its image.</p>
+                )}
                 {(uploadImageMutation.isPending || deleteImageMutation.isPending) && (
                   <p className="text-sm text-blue-600">
                     {uploadImageMutation.isPending ? 'Uploading...' : 'Deleting...'}
@@ -586,21 +593,23 @@ export default function ProductDetailPage() {
           </Card>
 
           {/* Edit All Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Edit All Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Edit all product details including images, information, ingredients, nutrition,
-                certifications, and FBO details.
-              </p>
-              <Button onClick={handleEditProduct} className="w-full">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit All Product Details
-              </Button>
-            </CardContent>
-          </Card>
+          {product.canEdit && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Edit All Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Edit all product details including images, information, ingredients, nutrition,
+                  certifications, and FBO details.
+                </p>
+                <Button onClick={handleEditProduct} className="w-full">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit All Product Details
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 

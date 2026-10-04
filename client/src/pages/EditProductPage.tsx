@@ -5,7 +5,7 @@ import { apiRequest } from '@/lib/queryClient';
 import ProductForm from '@/components/forms/ProductForm';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { insertProductSchema, type Product } from '@shared/schema';
+import { insertProductSchema, type ProductWithPermissions } from '@shared/schema';
 import { z } from 'zod';
 
 type ProductFormData = z.infer<typeof insertProductSchema>;
@@ -16,7 +16,7 @@ export default function EditProductPage() {
   const queryClient = useQueryClient();
   const { id: productId } = useParams();
 
-  const { data: product, isLoading: isLoadingProduct } = useQuery<Product>({
+  const { data: product, isLoading: isLoadingProduct } = useQuery<ProductWithPermissions>({
     queryKey: ['/api/products', productId],
     queryFn: () => apiRequest(`/api/products/${productId}`),
     enabled: !!productId,
@@ -76,6 +76,23 @@ export default function EditProductPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h1>
           <p className="text-gray-600 mb-4">The product you're trying to edit doesn't exist.</p>
+          <Button onClick={() => setLocation('/products')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Products
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product.canEdit) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">You cannot edit this product</h1>
+          <p className="text-gray-600 mb-4">
+            Only the account that created this product can change it.
+          </p>
           <Button onClick={() => setLocation('/products')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Products

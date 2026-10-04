@@ -26,7 +26,7 @@ export interface IStorage {
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
 
   // Product methods
-  getProducts(ownerId: string): Promise<Product[]>;
+  getProducts(): Promise<Product[]>;
   getProduct(id: number, ownerId: string): Promise<Product | undefined>;
   getPublicProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
@@ -73,8 +73,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Product methods
-  async getProducts(ownerId: string): Promise<Product[]> {
-    return await db.select().from(products).where(eq(products.ownerId, ownerId)).orderBy(products.name);
+  async getProducts(): Promise<Product[]> {
+    return await db.select().from(products).orderBy(products.name);
   }
 
   async getProduct(id: number, ownerId: string): Promise<Product | undefined> {
