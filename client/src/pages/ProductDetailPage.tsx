@@ -343,12 +343,12 @@ export default function ProductDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                <div className="w-full max-w-4xl h-[min(60vh,32rem)] mx-auto bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden p-2">
                   {product.imageUrl ? (
                     <img
                       src={product.imageUrl}
                       alt={product.name}
-                      className="w-full h-full object-cover"
+                      className="block max-w-full max-h-full object-contain"
                     />
                   ) : (
                     <span className="text-gray-500">Product Image Placeholder</span>
