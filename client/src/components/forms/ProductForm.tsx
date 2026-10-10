@@ -28,6 +28,7 @@ import type { Product } from '@shared/schema';
 import { insertProductSchema } from '@shared/schema';
 import { apiFetch, apiRequest } from '@/lib/queryClient';
 import { Label } from '../ui/label';
+import IngredientPicker from './IngredientPicker';
 
 const productFormSchema = insertProductSchema;
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -49,36 +50,11 @@ export default function ProductForm({
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
+    // null -> undefined so optional zod fields accept stored values; unknown keys are stripped
     defaultValues: product
-      ? {
-          name: product.name,
-          brand: product.brand || undefined,
-          netVolume: product.netVolume || undefined,
-          vintage: product.vintage || undefined,
-          wineType: product.wineType || undefined,
-          sugarContent: product.sugarContent || undefined,
-          appellation: product.appellation || undefined,
-          alcoholContent: product.alcoholContent || undefined,
-          countryOfOrigin: product.countryOfOrigin || undefined,
-          sku: product.sku || undefined,
-          ean: product.ean || undefined,
-          packagingGases: product.packagingGases || undefined,
-          portionSize: product.portionSize || undefined,
-          kcal: product.kcal || undefined,
-          kj: product.kj || undefined,
-          fat: product.fat || undefined,
-          carbohydrates: product.carbohydrates || undefined,
-          organic: product.organic || false,
-          vegetarian: product.vegetarian || false,
-          vegan: product.vegan || false,
-          operatorType: product.operatorType || undefined,
-          operatorName: product.operatorName || undefined,
-          operatorAddress: product.operatorAddress || undefined,
-          operatorInfo: product.operatorInfo || undefined,
-          externalLink: product.externalLink || undefined,
-          redirectLink: product.redirectLink || undefined,
-          createdBy: product.createdBy || undefined,
-        }
+      ? (Object.fromEntries(
+          Object.entries(product).map(([k, v]) => [k, v ?? undefined]),
+        ) as ProductFormData)
       : {
           name: '',
           organic: false,
@@ -298,12 +274,26 @@ export default function ProductForm({
             </CardContent>
           </Card>
 
-          {/* Packaging */}
+          {/* Ingredients */}
           <Card>
             <CardHeader>
               <CardTitle>Ingredients</CardTitle>
+              <CardDescription>
+                Tick ingredients in the order they should appear on the label. Allergens are printed in
+                bold.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <FormField
+                control={form.control}
+                name="ingredientIds"
+                render={({ field }) => (
+                  <FormItem>
+                    <IngredientPicker value={field.value} onChange={field.onChange} />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="packagingGases"
@@ -924,10 +914,10 @@ export default function ProductForm({
               {isUploadingImage
                 ? 'Uploading image...'
                 : isLoading
-                  ? 'Creating...'
+                  ? 'Saving…'
                   : product
-                    ? 'Update Product'
-                    : 'Create Product'}
+                    ? 'Save changes'
+                    : 'Create product'}
             </Button>
           </div>
         </form>

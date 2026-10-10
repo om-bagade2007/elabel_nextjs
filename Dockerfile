@@ -1,86 +1,35 @@
 # Build stage
 FROM node:20-slim AS builder
-
-# Set working directory
 WORKDIR /app
 
-# Install Python and build essentials for node-gyp
-RUN apt-get update && \
-    apt-get install -y python3 make g++ && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Build tools for native modules (bcrypt)
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
-# Copy package files
 COPY package*.json ./
+RUN npm ci
 
-# Install dependencies with verbose logging
-RUN npm ci --verbose
-
-# Copy project files
 COPY . .
 
-# Create the dist structure and build frontend
-RUN echo "Building frontend..." && \
-    mkdir -p dist && \
-    NODE_ENV=production npx vite build && \
-    echo "Frontend build output:" && \
-    ls -la dist/public/ && \
-    echo "Copying index.html to 404.html..." && \
-    cp dist/public/index.html dist/public/404.html
+# Vite inlines VITE_* at build time; .env is dockerignored so they come in as build args
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_SENTRY_DSN
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
+    VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY \
+    VITE_SENTRY_DSN=$VITE_SENTRY_DSN
+RUN test -n "$VITE_SUPABASE_URL" -a -n "$VITE_SUPABASE_ANON_KEY" || (echo "VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY build args are required" && exit 1)
+RUN npm run build && npm prune --omit=dev
 
-# Build backend with all node_modules externalized
-RUN echo "Building backend..." && \
-    NODE_ENV=production npx esbuild server/production.ts \
-    --bundle \
-    --platform=node \
-    --format=esm \
-    --packages=external \
-    --sourcemap \
-    --keep-names \
-    --outfile=dist/index.js
-
-# Verify the build output
-RUN ls -la dist/ && \
-    ls -la dist/public/
-
-# Production stage
+# Production stage: built app + runtime deps only (no compilers)
 FROM node:20-slim AS production
-
-# Set working directory
 WORKDIR /app
 
-# Install curl for healthcheck
-RUN apt-get update && \
-    apt-get install -y curl && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Copy package files
-COPY package*.json ./
-
-# Install only production dependencies
-RUN npm ci --omit=dev && \
-    npm cache clean --force
-
-# Copy built files from builder
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+RUN mkdir -p uploads
 
-# Verify the dist structure
-RUN echo "Checking dist contents:" && \
-    ls -la dist/ && \
-    echo "Checking public contents:" && \
-    ls -la dist/public/
-
-# Create and configure upload directory
-RUN mkdir -p uploads && \
-    chmod 777 uploads
-
-# Set production environment
-ENV NODE_ENV=production
-ENV PORT=5000
-
-# Expose application port
+ENV NODE_ENV=production PORT=5000
 EXPOSE 5000
-
-# Start the application
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s   CMD node -e "fetch('http://localhost:5000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "dist/index.js"]

@@ -1,153 +1,216 @@
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
-import { Product } from '@shared/schema';
+import type { ProductWithIngredients } from '@shared/schema';
 import { useEffect, useState } from 'react';
 import { useParams } from 'wouter';
+import { formatAbv, PACKAGING_GASES } from '@/components/label/WineLabel';
+
+// Arrived by scanning the printed QR: log the scan with the location, if the shopper allows it.
+function useLogScan(productId: number) {
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has('src') || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) =>
+        void fetch('/api/public/scans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId, lat: coords.latitude, lng: coords.longitude, source: 'qr' }),
+        }).catch(() => {}),
+      () => {},
+      { timeout: 10000, maximumAge: 600000 },
+    );
+  }, [productId]);
+}
+
+const Row = ({ label, value }: { label: string; value?: string | null }) =>
+  value ? (
+    <tr className="border-t">
+      <th scope="row" className="py-2.5 pr-4 text-left font-normal text-muted-foreground">
+        {label}
+      </th>
+      <td className="py-2.5 text-right font-medium">{value}</td>
+    </tr>
+  ) : null;
+
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <section className="border-t px-5 py-6 sm:px-8">
+    <h2 className="mb-3 text-lg font-semibold">{title}</h2>
+    {children}
+  </section>
+);
 
 const PublicProductPage = () => {
   const params = useParams();
   const id = params?.id ? Number.parseInt(params.id, 10) : Number.NaN;
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<ProductWithIngredients | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  useLogScan(id);
 
   useEffect(() => {
     let cancelled = false;
-
-    const fetchProduct = async () => {
-      if (!Number.isInteger(id) || id < 1) {
-        setLoadError('Product not found');
-        return;
-      }
-
-      try {
-        const res = await apiRequest(`/api/public/products/${id}`);
-        if (!cancelled) setProduct(res.data || res);
-      } catch {
-        if (!cancelled) setLoadError('This product could not be loaded. Please try again later.');
-      }
-    };
-
-    void fetchProduct();
+    if (!Number.isInteger(id) || id < 1) {
+      setLoadError('This QR code does not point to a product.');
+      return;
+    }
+    apiRequest(`/api/public/products/${id}`)
+      .then((res) => {
+        if (cancelled) return;
+        const p = res.data || res;
+        if (p.redirectLink) window.location.replace(p.redirectLink);
+        else setProduct(p);
+      })
+      .catch(
+        () =>
+          !cancelled &&
+          setLoadError('This product could not be loaded. Check your connection and scan again.'),
+      );
     return () => {
       cancelled = true;
     };
   }, [id]);
 
-  if (loadError) {
+  if (loadError || !product) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 text-gray-500">
-        {loadError}
-      </div>
+      <main className="flex min-h-screen items-center justify-center px-6 text-center text-muted-foreground">
+        <p role={loadError ? 'alert' : 'status'}>{loadError || 'Loading product…'}</p>
+      </main>
     );
   }
 
-  if (!product) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 text-gray-500">
-        Loading product...
-      </div>
-    );
-  }
+  const p = product;
+  const ingredients = p.ingredients || [];
+  const allergens = Array.from(new Set(ingredients.flatMap((i) => i.allergens || [])));
+  const energy = [p.kj && `${p.kj} kJ`, p.kcal && `${p.kcal} kcal`].filter(Boolean).join(' / ');
+  const certifications = [p.organic && 'Organic', p.vegetarian && 'Vegetarian', p.vegan && 'Vegan'].filter(
+    Boolean,
+  ) as string[];
+  const warnings = [
+    p.pregnancyWarning && { src: '/pregnancy.svg', text: 'Not for pregnant women' },
+    p.ageWarning && { src: '/below18.svg', text: 'Not for persons under 18' },
+    p.drivingWarning && { src: '/nocar.svg', text: 'Do not drink and drive' },
+  ].filter(Boolean) as { src: string; text: string }[];
+  const keyFacts = [
+    ['Volume', p.netVolume],
+    ['Alcohol', formatAbv(p.alcoholContent)],
+    ['Vintage', p.vintage],
+  ].filter(([, v]) => v) as [string, string][];
 
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-white shadow-md rounded-lg my-10 space-y-8">
-      <h1 className="text-3xl font-bold text-center">{product.name}</h1>
-
-      {/* Product Image */}
-      <div className="w-full max-w-4xl h-[min(60vh,32rem)] mx-auto bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden p-2">
-        {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="block max-w-full max-h-full object-contain"
-          />
-        ) : (
-          <span className="text-gray-500">No Image Available</span>
+    <main className="mx-auto min-h-screen max-w-2xl bg-card sm:my-8 sm:min-h-0 sm:rounded-[10px] sm:border">
+      <header className="px-5 pb-6 pt-8 sm:px-8">
+        <p className="text-sm text-muted-foreground">
+          Digital product passport <span className="text-foreground">DPP-{p.id}</span>
+          {p.ean && <>, EAN {p.ean}</>}
+        </p>
+        {p.brand && <p className="mt-4 text-muted-foreground">{p.brand}</p>}
+        <h1 className="mt-1 text-4xl leading-tight sm:text-5xl">{p.name}</h1>
+        {(p.wineType || p.appellation) && (
+          <p className="mt-2 text-muted-foreground">
+            {[p.wineType, p.appellation].filter(Boolean).join(', ')}
+          </p>
         )}
-      </div>
+        {keyFacts.length > 0 && (
+          <dl className="mt-6 grid grid-cols-3 gap-3">
+            {keyFacts.map(([label, value]) => (
+              <div key={label} className="rounded-md bg-muted px-3 py-2.5">
+                <dt className="text-xs text-muted-foreground">{label}</dt>
+                <dd className="mt-0.5 font-semibold">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </header>
 
-      {/* Basic Information */}
-      <div className="grid grid-cols-2 gap-4">
-        <Info label="Brand" value={product.brand} />
-        <Info label="Net Volume" value={product.netVolume} />
-        <Info label="Vintage" value={product.vintage} />
-        <Info label="Wine Type" value={product.wineType} />
-      </div>
-
-      <Separator />
-
-      {/* Nutrition Declaration */}
-      <Section title="Nutrition Declaration">
-        <div className="grid grid-cols-2 gap-4">
-          <Info
-            label="Energy"
-            value={
-              product.kcal
-                ? `${product.kcal} kcal${product.kj ? ` / ${product.kj} kJ` : ''}`
-                : undefined
-            }
-          />
-          <Info label="Fat" value={product.fat} />
-          <Info label="Carbohydrates" value={product.carbohydrates} />
-          <Info label="Sugar Content" value={product.sugarContent} />
-          <Info label="Alcohol Content" value={product.alcoholContent} />
-          <Info label="Portion Size" value={product.portionSize} />
+      {p.imageUrl && (
+        <div className="flex h-72 items-center justify-center bg-muted p-4">
+          <img src={p.imageUrl} alt={p.name} className="block max-h-full max-w-full object-contain" />
         </div>
-      </Section>
+      )}
 
-      <Separator />
-
-      {/* Certifications */}
-      <Section title="Certifications">
-        <div className="flex flex-wrap gap-2">
-          {product.organic && <Badge variant="secondary">Organic</Badge>}
-          {product.vegetarian && <Badge variant="secondary">Vegetarian</Badge>}
-          {product.vegan && <Badge variant="secondary">Vegan</Badge>}
-          {!product.organic && !product.vegetarian && !product.vegan && (
-            <span className="text-gray-500">No certifications specified</span>
+      {ingredients.length > 0 && (
+        <Section title="Ingredients">
+          <p className="leading-relaxed">
+            {ingredients.map((ing, i) => (
+              <span key={ing.id} className={ing.allergens?.length ? 'font-bold' : undefined}>
+                {ing.name}
+                {ing.eNumber && ` (${ing.eNumber})`}
+                {i < ingredients.length - 1 ? ', ' : '.'}
+              </span>
+            ))}
+          </p>
+          {allergens.length > 0 && (
+            <p className="mt-3 rounded-md border-l-4 border-primary bg-primary/5 px-3 py-2 text-sm">
+              <span className="font-semibold">Contains:</span> {allergens.join(', ')}
+            </p>
           )}
-        </div>
-      </Section>
+          {p.packagingGases && PACKAGING_GASES[p.packagingGases] && (
+            <p className="mt-3 text-sm text-muted-foreground">{PACKAGING_GASES[p.packagingGases]}</p>
+          )}
+        </Section>
+      )}
 
-      <Separator />
+      {(energy || p.fat || p.carbohydrates) && (
+        <Section title="Nutrition declaration">
+          <table className="w-full text-sm">
+            <caption className="mb-2 text-left text-muted-foreground">Average values per 100 ml</caption>
+            <tbody>
+              <Row label="Energy" value={energy} />
+              <Row label="Fat" value={p.fat} />
+              <Row label="of which saturates" value={p.saturates} />
+              <Row label="Carbohydrates" value={p.carbohydrates} />
+              <Row label="of which sugars" value={p.sugar} />
+              <Row label="Protein" value={p.protein} />
+              <Row label="Salt" value={p.salt} />
+            </tbody>
+          </table>
+          {p.portionSize && <p className="mt-3 text-sm text-muted-foreground">Portion: {p.portionSize}</p>}
+        </Section>
+      )}
 
-      {/* FBO Details */}
-      <Section title="Food Business Operator (FBO) Details">
-        <Info label="Operator Type" value={product.operatorType} />
-        <Info label="Operator Name" value={product.operatorName} />
-        <Info label="Address" value={product.operatorAddress} />
-        <Info label="Additional Info" value={product.operatorInfo} />
-      </Section>
+      {warnings.length > 0 && (
+        <Section title="Responsible consumption">
+          <ul className="space-y-3">
+            {warnings.map((w) => (
+              <li key={w.src} className="flex items-center gap-3">
+                <img src={w.src} alt="" className="h-10 w-10" />
+                <span>{w.text}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
 
-      <Separator />
+      {certifications.length > 0 && (
+        <Section title="Certifications">
+          <ul className="flex flex-wrap gap-2">
+            {certifications.map((c) => (
+              <li key={c} className="rounded-md bg-verified/10 px-3 py-1.5 text-sm font-medium text-verified">
+                {c}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
 
-      {/* Additional Details */}
-      <Section title="Additional Details">
-        <div className="grid grid-cols-2 gap-4">
-          <Info label="Country of Origin" value={product.countryOfOrigin} />
-          <Info label="Appellation" value={product.appellation} />
-          <Info label="SKU" value={product.sku} />
-          <Info label="EAN" value={product.ean} />
-          <Info label="Packaging Gases" value={product.packagingGases} />
-        </div>
-      </Section>
-    </div>
+      {(p.operatorName || p.operatorAddress || p.countryOfOrigin) && (
+        <Section title="Producer">
+          <address className="not-italic leading-relaxed">
+            {p.operatorType && p.operatorType !== 'None' && (
+              <span className="block text-sm text-muted-foreground">{p.operatorType}</span>
+            )}
+            {p.operatorName && <span className="block font-medium">{p.operatorName}</span>}
+            {p.operatorAddress && <span className="block whitespace-pre-line">{p.operatorAddress}</span>}
+            {p.countryOfOrigin && <span className="mt-2 block">Product of {p.countryOfOrigin}</span>}
+          </address>
+          {p.operatorInfo && <p className="mt-3 text-sm text-muted-foreground">{p.operatorInfo}</p>}
+        </Section>
+      )}
+
+      <footer className="border-t px-5 py-6 text-sm text-muted-foreground sm:px-8">
+        Information provided by the producer through Open E-Label.
+        {p.sku && <span className="block">SKU {p.sku}</span>}
+      </footer>
+    </main>
   );
 };
-
-const Info = ({ label, value }: { label: string; value?: string | null }) => (
-  <div>
-    <h4 className="font-medium mb-1">{label}</h4>
-    <p className="text-sm text-gray-600">{value || 'Not specified'}</p>
-  </div>
-);
-
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div>
-    <h3 className="text-lg font-semibold mb-4">{title}</h3>
-    {children}
-  </div>
-);
 
 export default PublicProductPage;

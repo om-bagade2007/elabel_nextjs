@@ -20,6 +20,41 @@ A full-stack web application for managing wine products and ingredients with imp
 - **File Upload**: Multer for image handling
 - **Excel Processing**: XLSX library for import/export
 
+## Run with Docker (deployment)
+
+The app runs as one container; the database and login stay on Supabase.
+
+1. `cp .env.example .env` and fill it in. Two values matter most:
+   - `DATABASE_URL`: use the **Session pooler** string from Supabase → *Connect* → *Session pooler*
+     (`postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres`).
+     The direct `db.<ref>.supabase.co` host is IPv6-only, and Docker cannot reach it. This is what
+     broke Docker/localhost before.
+   - `BASE_URL`: the address phones can open (e.g. `http://192.168.1.20:5000` or your domain).
+     Printed QR codes point here.
+2. Run the migration once in the Supabase SQL editor: `server/db/add_ingredients_and_scans.sql`.
+3. Start it:
+   ```bash
+   docker compose up -d --build
+   curl http://localhost:5000/api/health   # {"status":"ok"}
+   ```
+   Uploaded images live in the `uploads` Docker volume. Update after a `git pull` with the same command.
+
+### Wine label and QR code
+Each product page shows a 100 × 120 mm SVG back label (standard 750 ml bottle) filled from the
+product form. Empty fields stay blank. The DPP QR code sits at a fixed spot bottom-right (25 mm) and
+opens `BASE_URL/qr/product/<id>`. Use **Download label (SVG)** for print; pictograms are embedded.
+
+### QR scan locations → QGIS
+- When a shopper scans the QR, the public page asks the browser for location (they can decline).
+- Other tools (e.g. the Python QR tool) can post scans directly:
+  ```bash
+  curl -X POST $BASE_URL/api/public/scans -H 'Content-Type: application/json' \
+    -d '{"productId": 1, "lat": 18.5204, "lng": 73.8567, "source": "python-qr-tool"}'
+  ```
+- Set `SCANS_EXPORT_KEY` in `.env`, then in QGIS: *Layer → Add Layer → Add Vector Layer →
+  Protocol: HTTP(S)* with URI `$BASE_URL/api/scans.geojson?key=<SCANS_EXPORT_KEY>`. Add an
+  OpenStreetMap XYZ basemap underneath. Reload the layer to see new scans.
+
 ## Local Setup
 
 ### Prerequisites

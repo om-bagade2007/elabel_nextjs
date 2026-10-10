@@ -40,8 +40,8 @@ export default function CreateIngredientPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Ingredient</h1>
-        <p className="text-gray-600">Add a new ingredient to your database</p>
+        <h1 className="mb-2 text-4xl">New ingredient</h1>
+        <p className="text-muted-foreground">Add a new ingredient to your database</p>
       </div>
 
       <IngredientForm

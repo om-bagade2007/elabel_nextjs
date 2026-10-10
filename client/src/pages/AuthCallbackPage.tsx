@@ -48,8 +48,8 @@ export default function AuthCallbackPage() {
   return (
     <div className="container flex items-center justify-center min-h-screen">
       <div className="text-center">
-        <h1 className="text-2xl font-bold mb-4">Completing authentication...</h1>
-        <p className="text-gray-600 dark:text-gray-400">Please wait while we log you in.</p>
+        <h1 className="mb-4 text-3xl">Completing authentication...</h1>
+        <p className="text-muted-foreground dark:text-gray-400">Please wait while we log you in.</p>
       </div>
     </div>
   );

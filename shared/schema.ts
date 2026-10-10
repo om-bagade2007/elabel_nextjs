@@ -1,4 +1,14 @@
-import { pgTable, text, serial, integer, boolean, timestamp, varchar, uuid } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  boolean,
+  timestamp,
+  varchar,
+  uuid,
+  doublePrecision,
+} from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 
 export const users = pgTable('users', {
@@ -48,6 +58,7 @@ export const products = pgTable('products', {
   externalLink: text('external_link'),
   redirectLink: text('redirect_link'),
   imageUrl: text('image_url'),
+  ingredientIds: integer('ingredient_ids').array(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   createdBy: integer('created_by'),
@@ -65,6 +76,23 @@ export const ingredients = pgTable('ingredients', {
   updatedAt: timestamp('updated_at').defaultNow(),
   createdBy: integer('created_by'),
   ownerId: uuid('owner_id'),
+});
+
+// One row per QR scan that shared a location (QGIS reads these via /api/scans.geojson)
+export const scans = pgTable('scans', {
+  id: serial('id').primaryKey(),
+  productId: integer('product_id').notNull(),
+  lat: doublePrecision('lat').notNull(),
+  lng: doublePrecision('lng').notNull(),
+  source: text('source'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const insertScanSchema = z.object({
+  productId: z.number().int().positive(),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  source: z.string().max(50).optional(),
 });
 
 export const insertUserSchema = z.object({
@@ -125,6 +153,7 @@ export const insertProductSchema = z.object({
   externalLink: z.string().optional(),
   redirectLink: z.string().optional(),
   imageUrl: z.string().optional(),
+  ingredientIds: z.array(z.number().int()).optional(),
   createdBy: z.number().optional(),
   ownerId: z.string().uuid().optional(),
 });
@@ -206,3 +235,6 @@ export type Product = typeof products.$inferSelect;
 export type ProductWithPermissions = Product & { canEdit: boolean };
 export type InsertIngredient = typeof ingredients.$inferInsert;
 export type Ingredient = typeof ingredients.$inferSelect;
+export type LabelIngredient = Pick<Ingredient, 'id' | 'name' | 'eNumber' | 'allergens' | 'category'>;
+export type ProductWithIngredients = Product & { ingredients?: LabelIngredient[] };
+export type Scan = typeof scans.$inferSelect;

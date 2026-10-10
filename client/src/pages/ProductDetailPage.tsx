@@ -1,50 +1,67 @@
 import { useState, useRef } from 'react';
-import { ArrowLeft, Download, Copy, Edit, Trash2, Eye, QrCode, Upload } from 'lucide-react';
+import { ArrowLeft, Download, Copy, Edit, Trash2, Eye, QrCode, Upload, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useLocation, useRoute } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, apiRequest } from '@/lib/queryClient';
 import ProductPreviewModal from '@/components/modals/ProductPreviewModal';
 import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal';
-import type { ProductWithPermissions } from '@shared/schema';
+import WineLabel, {
+  downloadSvg,
+  formatAbv,
+  PACKAGING_GASES,
+  qrPath,
+  useDppUrl,
+} from '@/components/label/WineLabel';
+import type { ProductWithIngredients, ProductWithPermissions } from '@shared/schema';
+
+type DetailProduct = ProductWithPermissions & ProductWithIngredients;
+
+function Facts({ title, rows }: { title: string; rows: [string, React.ReactNode][] }) {
+  return (
+    <section className="rounded-[10px] border bg-card p-5 sm:p-6">
+      <h2 className="mb-4 text-base font-semibold">{title}</h2>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-sm text-muted-foreground">{label}</dt>
+            <dd className="mt-0.5">{value || <span className="text-muted-foreground/70">Not set</span>}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
 
 export default function ProductDetailPage() {
   const [, setLocation] = useLocation();
-  const [match, params] = useRoute('/products/:id');
+  const [, params] = useRoute('/products/:id');
   const [showPreview, setShowPreview] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const labelRef = useRef<SVGSVGElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: product, isLoading } = useQuery<ProductWithPermissions>({
+  const { data: product, isLoading } = useQuery<DetailProduct>({
     queryKey: ['/api/products', params?.id],
     queryFn: () => apiRequest(`/api/products/${params?.id}`),
     enabled: !!params?.id,
   });
+  const dppUrl = useDppUrl(product?.id);
 
   const deleteProductMutation = useMutation({
     mutationFn: (id: number) => apiRequest(`/api/products/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
-      toast({
-        title: 'Product deleted',
-        description: 'Product has been successfully deleted',
-      });
+      toast({ title: 'Product deleted' });
       setLocation('/products');
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete product',
-        variant: 'destructive',
-      });
+      toast({ title: 'Could not delete the product', description: 'Try again.', variant: 'destructive' });
     },
   });
 
@@ -56,18 +73,11 @@ export default function ProductDetailPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
-      toast({
-        title: 'Product duplicated',
-        description: 'Product has been successfully duplicated',
-      });
+      toast({ title: 'Product duplicated' });
       setLocation('/products');
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to duplicate product',
-        variant: 'destructive',
-      });
+      toast({ title: 'Could not duplicate the product', description: 'Try again.', variant: 'destructive' });
     },
   });
 
@@ -75,31 +85,19 @@ export default function ProductDetailPage() {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('image', file);
-
       const response = await apiFetch(`/api/products/${params?.id}/image`, {
         method: 'POST',
         body: formData,
       });
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
+      if (!response.ok) throw new Error('Upload failed');
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/products', params?.id] });
-      toast({
-        title: 'Image uploaded',
-        description: 'Product image has been uploaded successfully',
-      });
+      toast({ title: 'Image uploaded' });
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to upload image',
-        variant: 'destructive',
-      });
+      toast({ title: 'Image upload failed', description: 'Use a JPG or PNG under 5 MB.', variant: 'destructive' });
     },
   });
 
@@ -107,23 +105,12 @@ export default function ProductDetailPage() {
     mutationFn: () => apiRequest(`/api/products/${params?.id}/image`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/products', params?.id] });
-      toast({
-        title: 'Image deleted',
-        description: 'Product image has been deleted successfully',
-      });
+      toast({ title: 'Image removed' });
     },
     onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete image',
-        variant: 'destructive',
-      });
+      toast({ title: 'Could not remove the image', variant: 'destructive' });
     },
   });
-
-  const handleEditProduct = () => {
-    setLocation(`/products/edit/${params?.id}`);
-  };
 
   const handleDuplicateProduct = () => {
     if (product) {
@@ -132,72 +119,34 @@ export default function ProductDetailPage() {
     }
   };
 
-  const handleDeleteProduct = () => {
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = () => {
-    if (product) {
-      deleteProductMutation.mutate(product.id);
-      setShowDeleteModal(false);
-    }
-  };
-
-  const generateQRCode = () => {
-    if (product?.externalLink) {
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(product.externalLink)}`;
-      const link = document.createElement('a');
-      link.href = qrCodeUrl;
-      link.download = `${product.name}-qr-code.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast({
-        title: 'QR Code Downloaded',
-        description: 'QR code has been downloaded successfully',
-      });
-    } else {
-      toast({
-        title: 'No External Link',
-        description: 'Please add an external link to generate QR code',
-        variant: 'destructive',
-      });
-    }
-  };
-
   const handleCopyLink = (link: string) => {
     navigator.clipboard.writeText(link);
-    toast({
-      title: 'Link copied',
-      description: 'Link has been copied to clipboard',
-    });
-  };
-
-  const handleImageUpload = () => {
-    fileInputRef.current?.click();
+    toast({ title: 'Link copied' });
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      uploadImageMutation.mutate(file);
-    }
-    // Reset the input value to allow selecting the same file again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (file) uploadImageMutation.mutate(file);
+    // Reset so the same file can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleDeleteImage = () => {
-    deleteImageMutation.mutate();
+  const downloadQr = () => {
+    const { size, d } = qrPath(dppUrl);
+    const svg = new DOMParser().parseFromString(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 ${size + 4} ${size + 4}" width="30mm" height="30mm"><rect x="-2" y="-2" width="${size + 4}" height="${size + 4}" fill="#fff"/><path d="${d}" fill="#000" shape-rendering="crispEdges"/></svg>`,
+      'image/svg+xml',
+    ).documentElement as unknown as SVGSVGElement;
+    downloadSvg(svg, `${product?.name}-dpp-qr.svg`);
   };
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center">
-          <p>Loading product...</p>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8" aria-busy="true" aria-label="Loading product">
+        <Skeleton className="mb-6 h-10 w-72" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Skeleton className="h-96 lg:col-span-2" />
+          <Skeleton className="h-96" />
         </div>
       </div>
     );
@@ -205,426 +154,246 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Product not found</h1>
-          <Button onClick={() => setLocation('/products')} className="mt-4" variant="outline">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Products
-          </Button>
-        </div>
+      <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8">
+        <h1 className="text-3xl">Product not found</h1>
+        <p className="mt-2 text-muted-foreground">It may have been deleted, or the link is wrong.</p>
+        <Button onClick={() => setLocation('/products')} className="mt-6" variant="outline">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to products
+        </Button>
       </div>
     );
   }
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header with Action Buttons */}
-      <div className="flex items-center justify-between mb-8">
-        <Button
-          onClick={() => setLocation('/products')}
-          variant="ghost"
-          className="text-gray-600 hover:text-primary"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Products
-        </Button>
+  const subtitle = [product.brand, product.wineType, product.vintage].filter(Boolean).join(', ');
+  const ingredients = product.ingredients || [];
 
-        <div className="flex items-center space-x-2">
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <Button
+        onClick={() => setLocation('/products')}
+        variant="ghost"
+        className="-ml-3 mb-4 text-muted-foreground"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Products
+      </Button>
+
+      <header className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-4xl leading-tight sm:text-5xl">{product.name}</h1>
+          {subtitle && <p className="mt-2 text-lg text-muted-foreground">{subtitle}</p>}
+          <p className="mt-2 text-sm text-muted-foreground">
+            Passport ID <span className="font-medium text-foreground">DPP-{product.id}</span>
+            {product.ean && (
+              <>
+                {', '}EAN <span className="font-medium text-foreground">{product.ean}</span>
+              </>
+            )}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {product.canEdit && (
+            <Button onClick={() => setLocation(`/products/edit/${product.id}`)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          )}
           <Button onClick={() => setShowPreview(true)} variant="outline">
-            <Eye className="w-4 h-4 mr-2" />
+            <Eye className="mr-2 h-4 w-4" />
             Preview
           </Button>
-          {/* <Button onClick={handleEditProduct} variant="outline">
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Button> */}
+          <Button onClick={handleDuplicateProduct} variant="outline" disabled={duplicateProductMutation.isPending}>
+            <Copy className="mr-2 h-4 w-4" />
+            Duplicate
+          </Button>
           {product.canEdit && (
-            <Button onClick={handleDeleteProduct} variant="destructive">
-              <Trash2 className="w-4 h-4 mr-2" />
+            <Button onClick={() => setShowDeleteModal(true)} variant="outline" className="text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
               Delete
             </Button>
           )}
-          <Button onClick={handleDuplicateProduct} variant="outline">
-            <Copy className="w-4 h-4 mr-2" />
-            Duplicate
-          </Button>
         </div>
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
+          <Facts
+            title="Wine"
+            rows={[
+              ['Net volume', product.netVolume],
+              ['Alcohol', formatAbv(product.alcoholContent)],
+              ['Sugar content', product.sugarContent],
+              ['Appellation', product.appellation],
+              ['Country of origin', product.countryOfOrigin],
+              ['Packaging gases', product.packagingGases && (PACKAGING_GASES[product.packagingGases] || product.packagingGases)],
+              ['SKU', product.sku],
+              ['EAN', product.ean],
+            ]}
+          />
+
+          <section className="rounded-[10px] border bg-card p-5 sm:p-6">
+            <h2 className="mb-4 text-base font-semibold">Ingredients</h2>
+            {ingredients.length ? (
+              <p className="leading-relaxed">
+                {ingredients.map((ing, i) => (
+                  <span key={ing.id} className={ing.allergens?.length ? 'font-bold' : undefined}>
+                    {ing.name}
+                    {ing.eNumber && ` (${ing.eNumber})`}
+                    {i < ingredients.length - 1 ? ', ' : ''}
+                  </span>
+                ))}
+              </p>
+            ) : (
+              <p className="text-muted-foreground">
+                No ingredients linked. {product.canEdit && 'Edit the product to add them to the label.'}
+              </p>
+            )}
+          </section>
+
+          <Facts
+            title="Nutrition per 100 ml"
+            rows={[
+              ['Energy', [product.kj && `${product.kj} kJ`, product.kcal && `${product.kcal} kcal`].filter(Boolean).join(' / ')],
+              ['Fat', product.fat],
+              ['of which saturates', product.saturates],
+              ['Carbohydrates', product.carbohydrates],
+              ['of which sugars', product.sugar],
+              ['Protein', product.protein],
+              ['Salt', product.salt],
+              ['Portion size', product.portionSize],
+            ]}
+          />
+
+          <Facts
+            title="Food business operator"
+            rows={[
+              ['Role', product.operatorType],
+              ['Name', product.operatorName],
+              ['Address', product.operatorAddress],
+              ['More information', product.operatorInfo],
+            ]}
+          />
+
+          <section className="rounded-[10px] border bg-card p-5 sm:p-6">
+            <h2 className="mb-4 text-base font-semibold">Certifications and warnings</h2>
+            <div className="flex flex-wrap gap-2">
+              {product.organic && <Badge className="bg-verified/10 text-verified hover:bg-verified/10">Organic</Badge>}
+              {product.vegetarian && <Badge className="bg-verified/10 text-verified hover:bg-verified/10">Vegetarian</Badge>}
+              {product.vegan && <Badge className="bg-verified/10 text-verified hover:bg-verified/10">Vegan</Badge>}
+              {product.pregnancyWarning && <Badge variant="outline">Pregnancy warning</Badge>}
+              {product.ageWarning && <Badge variant="outline">Under 18 warning</Badge>}
+              {product.drivingWarning && <Badge variant="outline">Driving warning</Badge>}
+              {!product.organic && !product.vegetarian && !product.vegan &&
+                !product.pregnancyWarning && !product.ageWarning && !product.drivingWarning && (
+                  <span className="text-muted-foreground">None set</span>
+                )}
+            </div>
+          </section>
+
+          <section className="rounded-[10px] border bg-card p-5 sm:p-6">
+            <h2 className="mb-4 text-base font-semibold">Product image</h2>
+            <div className="flex h-72 items-center justify-center overflow-hidden rounded-md bg-muted p-2">
+              {product.imageUrl ? (
+                <img src={product.imageUrl} alt={product.name} className="block max-h-full max-w-full object-contain" />
+              ) : (
+                <span className="text-muted-foreground">No image yet</span>
+              )}
+            </div>
+            {product.canEdit ? (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadImageMutation.isPending}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {uploadImageMutation.isPending ? 'Uploading…' : product.imageUrl ? 'Replace image' : 'Upload image'}
+                </Button>
+                {product.imageUrl && (
+                  <Button
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => deleteImageMutation.mutate()}
+                    disabled={deleteImageMutation.isPending}
+                  >
+                    Remove image
+                  </Button>
+                )}
+                <span className="text-sm text-muted-foreground">JPG or PNG, up to 5 MB</span>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">Only the product owner can change its image.</p>
+            )}
+          </section>
+        </div>
+
+        <aside className="order-first min-w-0 lg:order-none lg:sticky lg:top-24 lg:self-start">
+          <section className="rounded-[10px] border bg-card p-5 sm:p-6">
+            <h2 className="text-base font-semibold">Bottle label</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              100 × 120 mm back label. The QR code opens this product's public passport.
+            </p>
+            <div className="mt-4 rounded-sm bg-muted p-4">
+              <WineLabel
+                ref={labelRef}
+                product={product}
+                qrUrl={dppUrl}
+                className="mx-auto h-auto w-full max-w-[320px] shadow-[0_1px_3px_hsl(var(--foreground)/0.15)]"
+              />
+            </div>
+            <div className="mt-4 grid gap-2">
+              <Button onClick={() => labelRef.current && downloadSvg(labelRef.current, `${product.name}-label.svg`)}>
+                <Download className="mr-2 h-4 w-4" />
+                Download label (SVG)
+              </Button>
+              <Button variant="outline" onClick={downloadQr}>
+                <QrCode className="mr-2 h-4 w-4" />
+                Download QR code (SVG)
+              </Button>
+              <Button variant="outline" asChild>
+                <a href={dppUrl.replace('?src=qr', '')} target="_blank" rel="noreferrer">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Open public passport
+                </a>
+              </Button>
+            </div>
+            <div className="mt-4 flex items-center gap-2 rounded-md bg-muted px-3 py-2">
+              <span className="flex-1 truncate text-sm text-muted-foreground">{dppUrl}</span>
+              <Button variant="ghost" size="icon" onClick={() => handleCopyLink(dppUrl)} aria-label="Copy passport link">
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            {(product.externalLink || product.redirectLink) && (
+              <dl className="mt-4 space-y-2 text-sm">
+                {product.externalLink && (
+                  <div>
+                    <dt className="text-muted-foreground">External link</dt>
+                    <dd className="truncate">{product.externalLink}</dd>
+                  </div>
+                )}
+                {product.redirectLink && (
+                  <div>
+                    <dt className="text-muted-foreground">Redirects to</dt>
+                    <dd className="truncate">{product.redirectLink}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
+          </section>
+        </aside>
       </div>
 
-      <Tabs defaultValue="details" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="image">Product Image</TabsTrigger>
-          <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
-          <TabsTrigger value="certifications">Certifications</TabsTrigger>
-          <TabsTrigger value="fbo">FBO Details</TabsTrigger>
-          <TabsTrigger value="digital">Digital Assets</TabsTrigger>
-        </TabsList>
-
-        {/* Product Details Tab */}
-        <TabsContent value="details" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Product Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Product Name
-                  </label>
-                  <p className="text-gray-900">{product.name}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-                  <p className="text-gray-900">{product.brand || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Net Volume</label>
-                  <p className="text-gray-900">{product.netVolume || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vintage</label>
-                  <p className="text-gray-900">{product.vintage || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Wine Type</label>
-                  <p className="text-gray-900">{product.wineType || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Sugar Content
-                  </label>
-                  <p className="text-gray-900">{product.sugarContent || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Appellation
-                  </label>
-                  <p className="text-gray-900">{product.appellation || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Alcohol Content
-                  </label>
-                  <p className="text-gray-900">{product.alcoholContent || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Country of Origin
-                  </label>
-                  <p className="text-gray-900">{product.countryOfOrigin || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
-                  <p className="text-gray-900">{product.sku || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">EAN</label>
-                  <p className="text-gray-900">{product.ean || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Packaging Gases
-                  </label>
-                  <p className="text-gray-900">{product.packagingGases || 'Not specified'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Product Image Tab */}
-        <TabsContent value="image" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Product Image</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="w-full max-w-4xl h-[min(60vh,32rem)] mx-auto bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden p-2">
-                  {product.imageUrl ? (
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className="block max-w-full max-h-full object-contain"
-                    />
-                  ) : (
-                    <span className="text-gray-500">Product Image Placeholder</span>
-                  )}
-                </div>
-                {product.canEdit && (
-                  <div className="flex space-x-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    <Button
-                      variant="outline"
-                      onClick={handleImageUpload}
-                      disabled={uploadImageMutation.isPending}
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {product.imageUrl ? 'Change Image' : 'Upload Image'}
-                    </Button>
-                    {product.imageUrl && (
-                      <Button
-                        variant="destructive"
-                        onClick={handleDeleteImage}
-                        disabled={deleteImageMutation.isPending}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete Image
-                      </Button>
-                    )}
-                  </div>
-                )}
-                {!product.canEdit && (
-                  <p className="text-sm text-gray-500">Only the product owner can change its image.</p>
-                )}
-                {(uploadImageMutation.isPending || deleteImageMutation.isPending) && (
-                  <p className="text-sm text-blue-600">
-                    {uploadImageMutation.isPending ? 'Uploading...' : 'Deleting...'}
-                  </p>
-                )}
-                <p className="text-sm text-gray-500">
-                  Supported formats: JPG, PNG. Recommended dimensions: 1000x750px. Max file size:
-                  5MB
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Nutrition Information Tab */}
-        <TabsContent value="nutrition" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Nutrition Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Portion Size
-                  </label>
-                  <p className="text-gray-900">{product.portionSize || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Energy (kcal)
-                  </label>
-                  <p className="text-gray-900">{product.kcal || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Energy (kJ)
-                  </label>
-                  <p className="text-gray-900">{product.kj || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fat</label>
-                  <p className="text-gray-900">{product.fat || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Carbohydrates
-                  </label>
-                  <p className="text-gray-900">{product.carbohydrates || 'Not specified'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Certifications Tab */}
-        <TabsContent value="certifications" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Certifications</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {product.organic && (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    Organic
-                  </Badge>
-                )}
-                {product.vegetarian && (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    Vegetarian
-                  </Badge>
-                )}
-                {product.vegan && (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    Vegan
-                  </Badge>
-                )}
-                {!product.organic && !product.vegetarian && !product.vegan && (
-                  <span className="text-gray-500">No certifications specified</span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* FBO Details Tab */}
-        <TabsContent value="fbo" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Food Business Operator Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Operator Type
-                  </label>
-                  <p className="text-gray-900">{product.operatorType || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Operator Name
-                  </label>
-                  <p className="text-gray-900">{product.operatorName || 'Not specified'}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                  <p className="text-gray-900">{product.operatorAddress || 'Not specified'}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Additional Information
-                  </label>
-                  <p className="text-gray-900">{product.operatorInfo || 'Not specified'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Digital Assets Tab */}
-        <TabsContent value="digital" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Digital Assets (QR Code)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* QR Code Display */}
-                <div className="text-center">
-                  {product.externalLink ? (
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(product.externalLink)}`}
-                      alt="QR Code for product"
-                      className="w-48 h-48 mx-auto border rounded-lg"
-                    />
-                  ) : (
-                    <div className="w-48 h-48 mx-auto border rounded-lg bg-gray-100 flex items-center justify-center">
-                      <span className="text-gray-500">No QR Code Available</span>
-                    </div>
-                  )}
-                  <p className="text-sm text-gray-600 mt-2">QR Code generated from External Link</p>
-                </div>
-
-                {/* Download QR Code */}
-                <div className="text-center">
-                  <Button
-                    onClick={generateQRCode}
-                    variant="outline"
-                    disabled={!product.externalLink}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download QR Code
-                  </Button>
-                </div>
-
-                {/* External Link */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    External Link
-                  </label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      value={product.externalLink || 'No external link specified'}
-                      readOnly
-                      className="flex-1 text-sm bg-gray-50"
-                    />
-                    {product.externalLink && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyLink(product.externalLink!)}
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Redirect Link */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Redirect Link
-                  </label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      value={product.redirectLink || 'No redirect link specified'}
-                      readOnly
-                      className="flex-1 text-sm bg-gray-50"
-                    />
-                    {product.redirectLink && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyLink(product.redirectLink!)}
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Edit All Details */}
-          {product.canEdit && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Edit All Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">
-                  Edit all product details including images, information, ingredients, nutrition,
-                  certifications, and FBO details.
-                </p>
-                <Button onClick={handleEditProduct} className="w-full">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit All Product Details
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {/* Modals */}
-      <ProductPreviewModal
-        product={product}
-        isOpen={showPreview}
-        onClose={() => setShowPreview(false)}
-      />
-
+      <ProductPreviewModal product={product} isOpen={showPreview} onClose={() => setShowPreview(false)} />
       <DeleteConfirmationModal
         product={product}
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        onConfirm={confirmDelete}
+        onConfirm={() => {
+          deleteProductMutation.mutate(product.id);
+          setShowDeleteModal(false);
+        }}
         isLoading={deleteProductMutation.isPending}
       />
     </div>
