@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, Edit, MoreVertical, Copy, Trash2, FileText, QrCode } from 'lucide-react';
+import { Eye, Edit, MoreVertical, Copy, Trash2, FileText, QrCode, ExternalLink, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -37,6 +37,26 @@ export default function ProductsTable({
 
   const handleViewDetails = (productId: number) => {
     setLocation(`/products/${productId}`);
+  };
+
+  const handleDownloadQR = async (product: ProductWithPermissions) => {
+    const dppUrl = `${window.location.origin}/qr/product/${product.id}`;
+    const qrDownloadUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(dppUrl)}`;
+    try {
+      const response = await fetch(qrDownloadUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const safeName = product.name ? product.name.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'product';
+      link.download = `${safeName}-dpp-qr.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(qrDownloadUrl, '_blank');
+    }
   };
 
   return (
@@ -136,6 +156,14 @@ export default function ProductsTable({
                       <DropdownMenuItem onClick={() => handleViewDetails(product.id)}>
                         <FileText className="w-4 h-4 mr-2" />
                         Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => window.open(`/qr/product/${product.id}`, '_blank')}>
+                        <ExternalLink className="w-4 h-4 mr-2 text-primary" />
+                        Public DPP (e-Label)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownloadQR(product)}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Download QR Code
                       </DropdownMenuItem>
                       {product.canEdit && (
                         <>

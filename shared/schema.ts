@@ -43,6 +43,16 @@ export const products = pgTable('products', {
   operatorAddress: text('operator_address'),
   operatorInfo: text('operator_info'),
   countryOfOrigin: text('country_of_origin'),
+  manufacturingLocation: text('manufacturing_location'),
+  manufacturingAddress: text('manufacturing_address'),
+  manufacturingCity: text('manufacturing_city'),
+  manufacturingState: text('manufacturing_state'),
+  manufacturingCountry: text('manufacturing_country'),
+  manufacturingPostalCode: text('manufacturing_postal_code'),
+  manufacturingLatitude: text('manufacturing_latitude'),
+  manufacturingLongitude: text('manufacturing_longitude'),
+  latitude: text('latitude'),
+  longitude: text('longitude'),
   sku: text('sku'),
   ean: text('ean'),
   externalLink: text('external_link'),
@@ -120,6 +130,28 @@ export const insertProductSchema = z.object({
   operatorAddress: z.string().optional(),
   operatorInfo: z.string().optional(),
   countryOfOrigin: z.string().optional(),
+  manufacturingLocation: z.string().optional(),
+  manufacturingAddress: z.string().optional(),
+  manufacturingCity: z.string().optional(),
+  manufacturingState: z.string().optional(),
+  manufacturingCountry: z.string().optional(),
+  manufacturingPostalCode: z.string().optional(),
+  manufacturingLatitude: z
+    .union([z.string(), z.number()])
+    .transform((val) => String(val))
+    .optional(),
+  manufacturingLongitude: z
+    .union([z.string(), z.number()])
+    .transform((val) => String(val))
+    .optional(),
+  latitude: z
+    .union([z.string(), z.number()])
+    .transform((val) => String(val))
+    .optional(),
+  longitude: z
+    .union([z.string(), z.number()])
+    .transform((val) => String(val))
+    .optional(),
   sku: z.string().optional(),
   ean: z.string().optional(),
   externalLink: z.string().optional(),
@@ -177,6 +209,28 @@ export const importProductSchema = z.object({
   operatorAddress: z.string().optional(),
   operatorInfo: z.string().optional(),
   countryOfOrigin: z.string().optional(),
+  manufacturingLocation: z.string().optional(),
+  manufacturingAddress: z.string().optional(),
+  manufacturingCity: z.string().optional(),
+  manufacturingState: z.string().optional(),
+  manufacturingCountry: z.string().optional(),
+  manufacturingPostalCode: z.string().optional(),
+  manufacturingLatitude: z
+    .union([z.string(), z.number()])
+    .transform((val) => String(val))
+    .optional(),
+  manufacturingLongitude: z
+    .union([z.string(), z.number()])
+    .transform((val) => String(val))
+    .optional(),
+  latitude: z
+    .union([z.string(), z.number()])
+    .transform((val) => String(val))
+    .optional(),
+  longitude: z
+    .union([z.string(), z.number()])
+    .transform((val) => String(val))
+    .optional(),
   sku: z
     .union([z.string(), z.number()])
     .transform((val) => String(val))

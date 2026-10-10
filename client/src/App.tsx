@@ -30,6 +30,8 @@ function Router() {
       <Route path="/auth/callback" component={AuthCallbackPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/qr/product/:id" component={PublicProductPage} />
+      <Route path="/dpp/:id" component={PublicProductPage} />
+      <Route path="/p/:id" component={PublicProductPage} />
       <Route path="/products">
         <ProtectedRoute>
           <ProductsPage />
@@ -73,7 +75,10 @@ function Router() {
 function App() {
   const [location] = useLocation();
 
-  const isPublicPage = location.startsWith('/qr/product/');
+  const isPublicPage =
+    location.startsWith('/qr/product/') ||
+    location.startsWith('/dpp/') ||
+    location.startsWith('/p/');
 
   return (
     <QueryClientProvider client={queryClient}>

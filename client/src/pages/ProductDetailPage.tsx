@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowLeft, Download, Copy, Edit, Trash2, Eye, QrCode, Upload } from 'lucide-react';
+import { ArrowLeft, Download, Copy, Edit, Trash2, Eye, QrCode, Upload, MapPin, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -143,25 +143,33 @@ export default function ProductDetailPage() {
     }
   };
 
-  const generateQRCode = () => {
-    if (product?.externalLink) {
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(product.externalLink)}`;
+  const generateQRCode = async () => {
+    if (!product) return;
+    const dppUrl = `${window.location.origin}/qr/product/${product.id}`;
+    const qrDownloadUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(dppUrl)}`;
+
+    try {
+      const response = await fetch(qrDownloadUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = qrCodeUrl;
-      link.download = `${product.name}-qr-code.png`;
+      link.href = blobUrl;
+      const safeName = product.name ? product.name.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'product';
+      link.download = `${safeName}-dpp-qr.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
 
       toast({
         title: 'QR Code Downloaded',
-        description: 'QR code has been downloaded successfully',
+        description: 'Automatic DPP QR code downloaded successfully (500x500 PNG).',
       });
-    } else {
+    } catch {
+      window.open(qrDownloadUrl, '_blank');
       toast({
-        title: 'No External Link',
-        description: 'Please add an external link to generate QR code',
-        variant: 'destructive',
+        title: 'QR Code Opened',
+        description: 'QR code opened in a new tab for saving.',
       });
     }
   };
@@ -231,6 +239,14 @@ export default function ProductDetailPage() {
         </Button>
 
         <div className="flex items-center space-x-2">
+          <Button
+            onClick={() => window.open(`/qr/product/${product.id}`, '_blank')}
+            variant="default"
+            className="bg-primary text-white hover:bg-primary/90"
+          >
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Public DPP Page
+          </Button>
           <Button onClick={() => setShowPreview(true)} variant="outline">
             <Eye className="w-4 h-4 mr-2" />
             Preview
@@ -253,11 +269,12 @@ export default function ProductDetailPage() {
       </div>
 
       <Tabs defaultValue="details" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="image">Product Image</TabsTrigger>
           <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
           <TabsTrigger value="certifications">Certifications</TabsTrigger>
+          <TabsTrigger value="location">Manufacturing</TabsTrigger>
           <TabsTrigger value="fbo">FBO Details</TabsTrigger>
           <TabsTrigger value="digital">Digital Assets</TabsTrigger>
         </TabsList>
@@ -329,6 +346,22 @@ export default function ProductDetailPage() {
                     Packaging Gases
                   </label>
                   <p className="text-gray-900">{product.packagingGases || 'Not specified'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Manufacturing Facility
+                  </label>
+                  <p className="text-gray-900">{product.manufacturingLocation || 'Not specified'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Coordinates (Lat, Lon)
+                  </label>
+                  <p className="text-gray-900">
+                    {product.latitude || product.manufacturingLatitude
+                      ? `${product.latitude || product.manufacturingLatitude}, ${product.longitude || product.manufacturingLongitude}`
+                      : 'Not specified'}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -472,6 +505,118 @@ export default function ProductDetailPage() {
           </Card>
         </TabsContent>
 
+        {/* Manufacturing Location Tab */}
+        <TabsContent value="location" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 text-emerald-800 rounded-lg">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <CardTitle>Manufacturing Location & Traceability</CardTitle>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Physical manufacturing plant, winery premises, and GPS coordinates.
+                  </p>
+                </div>
+              </div>
+              {(product.latitude || product.manufacturingLatitude) &&
+                (product.longitude || product.manufacturingLongitude) && (
+                  <a
+                    href={`https://www.google.com/maps?q=${product.latitude || product.manufacturingLatitude},${product.longitude || product.manufacturingLongitude}`}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-md border border-emerald-200 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Open in Google Maps
+                  </a>
+                )}
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Facility / Estate Name
+                  </label>
+                  <p className="text-gray-900 font-medium">
+                    {product.manufacturingLocation || 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Street Address
+                  </label>
+                  <p className="text-gray-900">
+                    {product.manufacturingAddress || 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    City / Town
+                  </label>
+                  <p className="text-gray-900">
+                    {product.manufacturingCity || 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    State / Region / Province
+                  </label>
+                  <p className="text-gray-900">
+                    {product.manufacturingState || 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Country
+                  </label>
+                  <p className="text-gray-900">
+                    {product.manufacturingCountry || 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Postal / ZIP Code
+                  </label>
+                  <p className="text-gray-900">
+                    {product.manufacturingPostalCode || 'Not specified'}
+                  </p>
+                </div>
+
+                <div className="md:col-span-2 pt-2 border-t border-gray-100">
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                        GPS Coordinates
+                      </span>
+                      {(product.latitude || product.manufacturingLatitude) && (
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-200">
+                          Active Pin
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-sm">
+                      <div>
+                        <span className="text-xs text-gray-500 block font-sans">Latitude:</span>
+                        <span className="font-semibold text-gray-900">
+                          {product.latitude || product.manufacturingLatitude || 'Not specified'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500 block font-sans">Longitude:</span>
+                        <span className="font-semibold text-gray-900">
+                          {product.longitude || product.manufacturingLongitude || 'Not specified'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* FBO Details Tab */}
         <TabsContent value="fbo" className="space-y-6">
           <Card>
@@ -510,82 +655,133 @@ export default function ProductDetailPage() {
         {/* Digital Assets Tab */}
         <TabsContent value="digital" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Digital Assets (QR Code)</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <div>
+                <CardTitle className="text-xl">Digital Product Passport (DPP) QR Code</CardTitle>
+                <p className="text-sm text-gray-500 mt-1">
+                  Automatic QR code ready for wine bottle labels and packaging. No login required.
+                </p>
+              </div>
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-200">
+                Ready to Print
+              </Badge>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* QR Code Display */}
-                <div className="text-center">
-                  {product.externalLink ? (
+                {/* QR Code Display & Quick Actions */}
+                <div className="flex flex-col sm:flex-row items-center gap-6 p-6 bg-slate-50 border border-slate-200/80 rounded-xl">
+                  <div className="bg-white p-3 rounded-lg border shadow-sm flex-shrink-0">
                     <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(product.externalLink)}`}
-                      alt="QR Code for product"
-                      className="w-48 h-48 mx-auto border rounded-lg"
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+                        `${window.location.origin}/qr/product/${product.id}`,
+                      )}`}
+                      alt={`QR Code for ${product.name}`}
+                      className="w-44 h-44 rounded"
                     />
-                  ) : (
-                    <div className="w-48 h-48 mx-auto border rounded-lg bg-gray-100 flex items-center justify-center">
-                      <span className="text-gray-500">No QR Code Available</span>
+                  </div>
+
+                  <div className="flex-1 space-y-3 text-center sm:text-left">
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-lg">Instant Consumer Access</h4>
+                      <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                        Scanning this QR code directs consumers straight to the public e-Label &amp; Digital Product Passport page for <strong>{product.name}</strong> without asking for any login credentials.
+                      </p>
                     </div>
-                  )}
-                  <p className="text-sm text-gray-600 mt-2">QR Code generated from External Link</p>
-                </div>
 
-                {/* Download QR Code */}
-                <div className="text-center">
-                  <Button
-                    onClick={generateQRCode}
-                    variant="outline"
-                    disabled={!product.externalLink}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download QR Code
-                  </Button>
-                </div>
-
-                {/* External Link */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    External Link
-                  </label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      value={product.externalLink || 'No external link specified'}
-                      readOnly
-                      className="flex-1 text-sm bg-gray-50"
-                    />
-                    {product.externalLink && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyLink(product.externalLink!)}
-                      >
-                        <Copy className="w-4 h-4" />
+                    <div className="flex flex-wrap items-center gap-3 pt-2 justify-center sm:justify-start">
+                      <Button onClick={generateQRCode} className="bg-primary text-white">
+                        <Download className="w-4 h-4 mr-2" />
+                        Download High-Res QR Code
                       </Button>
-                    )}
+                      <Button
+                        onClick={() => window.open(`/qr/product/${product.id}`, '_blank')}
+                        variant="outline"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Test Public DPP Page
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Redirect Link */}
+                {/* Public DPP Link */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Redirect Link
+                    Public DPP Webpage URL (Encoded in QR Code)
                   </label>
                   <div className="flex items-center space-x-2">
                     <Input
-                      value={product.redirectLink || 'No redirect link specified'}
+                      value={`${window.location.origin}/qr/product/${product.id}`}
                       readOnly
-                      className="flex-1 text-sm bg-gray-50"
+                      className="flex-1 text-sm bg-white font-mono text-gray-800"
                     />
-                    {product.redirectLink && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyLink(product.redirectLink!)}
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyLink(`${window.location.origin}/qr/product/${product.id}`)}
+                    >
+                      <Copy className="w-4 h-4 mr-1.5" />
+                      Copy Link
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1.5">
+                    This public link never expires and complies with EU e-label regulations.
+                  </p>
+                </div>
+
+                {/* Optional Overrides */}
+                <div className="pt-4 border-t border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                    Optional Custom Redirection Links
+                  </h4>
+                  <p className="text-xs text-gray-500 mb-4">
+                    By default, the automatic QR code above is used. You can optionally specify custom external redirect URLs below if needed.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        External Link (Optional)
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          value={product.externalLink || 'None (Using automatic DPP QR)'}
+                          readOnly
+                          className="flex-1 text-xs bg-gray-50"
+                        />
+                        {product.externalLink && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCopyLink(product.externalLink!)}
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Redirect Link (Optional)
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          value={product.redirectLink || 'None'}
+                          readOnly
+                          className="flex-1 text-xs bg-gray-50"
+                        />
+                        {product.redirectLink && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCopyLink(product.redirectLink!)}
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
