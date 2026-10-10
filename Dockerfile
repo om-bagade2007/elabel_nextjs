@@ -27,6 +27,8 @@ WORKDIR /app
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/dist ./dist
+# Startup migrations (server/migrate.ts) read these
+COPY --from=builder /app/server/db/*.sql ./server/db/
 RUN mkdir -p uploads && chown node:node uploads
 
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=5000

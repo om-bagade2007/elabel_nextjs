@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { registerRoutes } from './routes';
+import { ensureSchema } from './migrate';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,7 +32,12 @@ app.get('*', (req: express.Request, res: express.Response, next: express.NextFun
   }
 });
 
-app.listen(port, host, () => {
-  console.log(`Server is running at http://${host}:${port}`);
-  console.log(`Serving static files from: ${publicDir}`);
-});
+// Bring the database up to the current schema before serving (logs and continues on failure)
+ensureSchema()
+  .catch((err) => console.error('Database schema update failed:', err.message))
+  .finally(() =>
+    app.listen(port, host, () => {
+      console.log(`Server is running at http://${host}:${port}`);
+      console.log(`Serving static files from: ${publicDir}`);
+    }),
+  );

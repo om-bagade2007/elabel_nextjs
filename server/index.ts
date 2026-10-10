@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from 'express';
 import { registerRoutes } from './routes';
+import { ensureSchema } from './migrate';
 import { setupVite, serveStatic, log } from './vite';
 import cors from 'cors';
 import * as Sentry from '@sentry/node';
@@ -42,6 +43,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  await ensureSchema().catch((err) => console.error('Database schema update failed:', err.message));
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
