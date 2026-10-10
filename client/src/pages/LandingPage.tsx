@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/lib/auth';
-import WineLabel from '@/components/label/WineLabel';
+import WineLabel, { useDppBase } from '@/components/label/WineLabel';
 import type { ProductWithIngredients } from '@shared/schema';
 
 const SAMPLE = {
@@ -37,6 +37,7 @@ const STEPS = [
 export default function LandingPage() {
   const [, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
+  const dppBase = useDppBase();
 
   return (
     <main className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_auto] lg:gap-20 lg:px-8 lg:py-20">
@@ -66,7 +67,7 @@ export default function LandingPage() {
       <figure className="mx-auto w-full max-w-[360px]">
         <WineLabel
           product={SAMPLE}
-          qrUrl={`${window.location.origin}/`}
+          qrUrl={`${dppBase}/`}
           className="h-auto w-full -rotate-1 shadow-[0_2px_4px_hsl(var(--foreground)/0.08),0_12px_32px_hsl(var(--foreground)/0.12)]"
         />
         <figcaption className="mt-4 text-center text-sm text-muted-foreground">
