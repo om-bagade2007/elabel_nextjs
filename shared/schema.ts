@@ -88,7 +88,7 @@ export const ingredients = pgTable('ingredients', {
   ownerId: uuid('owner_id'),
 });
 
-// One row per QR scan that shared a location (QGIS reads these via /api/scans.geojson)
+// One row per QR scan that shared a location (exported via /api/scans.geojson)
 export const scans = pgTable('scans', {
   id: serial('id').primaryKey(),
   productId: integer('product_id').notNull(),

@@ -39,7 +39,6 @@ import {
   Search,
   Sparkles,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { detectAutomaticLocation, searchCoordinatesFromAddress } from '@/lib/geolocation';
 
 const productFormSchema = insertProductSchema;
@@ -778,7 +777,7 @@ export default function ProductForm({
 
           {/* Manufacturing Location Details */}
           <Card className="border-verified/30 shadow-sm">
-            <CardHeader className="bg-gradient-to-r from-emerald-50/60 via-slate-50/40 to-transparent border-b border-verified/30/60 pb-4">
+            <CardHeader className="border-b pb-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
@@ -796,21 +795,19 @@ export default function ProductForm({
 
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
                   onClick={() => handleFetchAutoLocation(true)}
                   disabled={isDetectingLocation}
-                  className="flex items-center gap-2 border-verified/30 hover:bg-verified/10 text-verified self-start sm:self-auto"
+                  className="min-h-11 gap-2 self-start sm:self-auto"
                 >
                   {isDetectingLocation ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin text-verified" />
-                      <span>Fetching Location...</span>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Fetching location…</span>
                     </>
                   ) : (
                     <>
-                      <LocateFixed className="w-4 h-4 text-verified" />
-                      <span>Auto-Fetch Location</span>
+                      <LocateFixed className="w-4 h-4" />
+                      <span>Auto-fetch location</span>
                     </>
                   )}
                 </Button>
@@ -865,8 +862,6 @@ export default function ProductForm({
                   />
                   <Button
                     type="button"
-                    variant="secondary"
-                    size="sm"
                     onClick={handleSearchCoordinates}
                     disabled={isSearchingCoordinates}
                     className="whitespace-nowrap"
@@ -876,7 +871,7 @@ export default function ProductForm({
                     ) : (
                       <Search className="w-4 h-4 mr-1" />
                     )}
-                    Find Coordinates
+                    Find coordinates
                   </Button>
                 </div>
               </div>
@@ -1001,9 +996,7 @@ export default function ProductForm({
               <div className="rounded-xl border border-border bg-muted/50 p-4 space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-white border-border text-foreground/80">
-                      GPS Coordinates
-                    </Badge>
+                    <span className="text-sm font-semibold text-foreground">GPS coordinates</span>
                     <span className="text-xs text-muted-foreground">
                       Decimal degrees format (WGS 84)
                     </span>

@@ -66,7 +66,7 @@ export default function Navigation() {
               <span className="hidden max-w-48 truncate text-sm text-muted-foreground lg:block">
                 {user?.email || user?.id}
               </span>
-              <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground">
+              <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 sm:mr-2" />
                 <span className="sr-only sm:not-sr-only">Log out</span>
               </Button>

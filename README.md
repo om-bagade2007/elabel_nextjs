@@ -6,6 +6,22 @@ the ingredients, nutrition and producer details shoppers are entitled to see.
 
 Live site: https://wine-label-management-system.onrender.com
 
+## Contents
+
+1. [Features](#features)
+2. [How to use it: step by step](#how-to-use-it-step-by-step)
+3. [Tech stack](#tech-stack)
+4. [Configuration](#configuration)
+5. [Deploy](#deploy): [Render](#render-the-live-site), [Docker](#docker-any-machine), [Sentry](#sentry-error-monitoring)
+6. [Local development](#local-development)
+7. [Location services](#location-services)
+8. [API](#api)
+9. [Database](#database)
+10. [Excel import and export](#excel-import-and-export)
+11. [Project structure](#project-structure)
+12. [Troubleshooting](#troubleshooting)
+13. [Contributing](#contributing)
+
 ## Features
 
 - **Products and ingredients:** create, edit, duplicate and delete. Attach ingredients to a product
@@ -16,12 +32,52 @@ Live site: https://wine-label-management-system.onrender.com
 - **Public passport page:** what the QR opens. No login needed, built for phones. Three addresses
   open the same page: `/qr/product/<id>`, `/dpp/<id>` and `/p/<id>`. If a product has a
   *Redirect Link*, the page forwards there.
-- **Manufacturing location:** facility, address and GPS coordinates, with automatic detection from
-  the browser, the IP address or an address search.
-- **QR scan locations → QGIS:** scans with a shared location are stored, and QGIS loads them as a
-  GeoJSON layer.
+- **Manufacturing location:** facility, address and GPS coordinates, fetched automatically from the
+  device's GPS, with an IP-address fallback, an address search and manual entry. All services are
+  free and need no API key; see [Location services](#location-services).
+- **QR scan locations (optional):** when a shopper allows it, the location of each QR scan is stored.
 - **Login:** Supabase Auth (password or magic link). Everyone can see all products; only the owner
   can edit or delete one.
+
+## How to use it: step by step
+
+**1. Log in.** Open the site, click **Log in to the dashboard**, and sign in with your email and
+password, or a magic link sent by email. New users register first.
+
+**2. Add your ingredients once.** Go to **Ingredients**, then **New ingredient**. Enter the name,
+category and E-number (e.g. `E220`), and tick any allergens in the *Allergens* box (e.g. Sulphites).
+Ingredients can be reused across all your products. To add a list, use **Import** with an Excel or
+CSV file.
+
+**3. Create a product.** Go to **Products**, then **New product**, and fill in the form:
+- *Product information* and *Wine details*: name, brand, volume, vintage, type, sugar, alcohol.
+- *Ingredients*: tick them **in the order they should appear on the label**. The numbers show the
+  order. Allergens print in bold.
+- *Nutrition*, *Responsible consumption* (warning pictograms) and *Certifications*.
+- *Manufacturing location*: filled in automatically when the form opens (see step 4).
+- *Food business operator*, *Logistics* (country, SKU, EAN), and the product image (in
+  *Portability & External Links*).
+
+Click **Create product**. Fields you leave empty stay blank on the label.
+
+**4. Check the manufacturing location.**
+- When you open the form, the browser asks for your location. Click **Allow** to use the device's GPS.
+- If GPS is off or you say no, the app estimates the location from your internet connection (IP address).
+- To use another place, type an address or estate name and click **Find coordinates**, or type
+  the details in yourself. Click **Auto-fetch location** to try again.
+- **Preview on map** opens the coordinates in Google Maps.
+
+**5. Get the label and QR code.** Open the product. The **Bottle label** panel shows the 100 × 120 mm label.
+- **Download label (SVG)** for printing; the label is true to size.
+- **QR (SVG)** or **QR (PNG)** for the QR code alone. PNG files are 1000 × 1000 px.
+- **Open public passport** to see what shoppers see. On the Products list, the **⋮** menu also has
+  **Public passport** and **Download QR code (PNG)**.
+
+**6. Print and check.** Print the label at 100 % scale, without "fit to page". Scan the QR with a phone:
+it must open `https://wine-label-management-system.onrender.com/qr/product/<id>` and show the wine.
+
+**7. Edit later.** Open the product and click **Edit**. Changes show on the passport straight away.
+A printed QR code never needs reprinting, because it always points to the same page.
 
 ## Tech stack
 
@@ -38,7 +94,7 @@ explains every variable. The ones that matter most:
 | `DATABASE_URL` | The **Session pooler** string from Supabase → *Connect* → *Session pooler*. The direct `db.<ref>.supabase.co` host is IPv6-only, and Docker cannot reach it. |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` and the matching `VITE_*` values | From Supabase → *Project Settings* → *API*. `VITE_*` values are built into the browser bundle, so rebuild after changing them. |
 | `BASE_URL` | The public address of the site, e.g. `https://wine-label-management-system.onrender.com`. |
-| `SCANS_EXPORT_KEY` | Any secret string. It turns on the QGIS export. Leave it empty to keep the export off. |
+| `SCANS_EXPORT_KEY` | Optional. Any secret string. It turns on the scan-location export (`/api/scans.geojson`). Leave it empty to keep the export off. |
 
 **QR codes never contain localhost.** A QR uses the first public address among `BASE_URL`, the
 address the dashboard is opened on, and the live site above. A QR made on a local copy therefore
@@ -61,16 +117,18 @@ still opens on the live site, which shares the same database.
    - `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`
    - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
    - `BASE_URL=https://wine-label-management-system.onrender.com`
-   - `SCANS_EXPORT_KEY`
-   - Optional: the Sentry values (see below).
+   - Optional: `SCANS_EXPORT_KEY`, and the Sentry values (see below).
 
 **Every update:**
 1. Merge or push your change into `main` on GitHub.
 2. Render → the service → **Manual Deploy** → *Deploy latest commit*. It does not deploy on its own.
 3. In *Logs*, wait for `Database schema is up to date` and `Server is running`.
-4. Check it:
-   - `https://wine-label-management-system.onrender.com/api/health` returns `{"status":"ok"}`.
-   - Open a product. The link under its label should start with the Render address, not `localhost`.
+4. Check it after every deploy:
+   - [ ] `https://wine-label-management-system.onrender.com/api/health` returns `{"status":"ok"}`.
+   - [ ] Log in, then create a test product. It saves without an error.
+   - [ ] On the product page, the link under the label starts with the Render address, not `localhost`.
+   - [ ] Scan the label's QR with a phone. The passport page opens.
+   - [ ] Delete the test product.
 
 If you change any `VITE_*` value, deploy again: those values are built into the page.
 
@@ -99,9 +157,13 @@ updates. Never commit `.env`.
    the build. The Sentry org and project names are set in `vite.config.ts` (`canspirit-ai` /
    `elabel`); change them there if you use your own Sentry account. The Docker build does not
    pass this token, so source-map upload only runs on Render.
-4. Check it: open the site, run
-   `setTimeout(() => { throw new Error('Sentry test') })` in the browser console. The error
-   appears under *Issues* in Sentry within a minute.
+4. Check it. **This needs a second person; don't tick it off on your own.**
+   - [ ] Render *Environment* has `VITE_SENTRY_DSN`, and a deploy ran after it was added.
+   - [ ] Open the live site, open the browser console (F12), and run
+     `setTimeout(() => { throw new Error('Sentry test') })`.
+   - [ ] Within a minute, Sentry → *Issues* shows "Sentry test" with the site's address.
+   - [ ] If `SENTRY_AUTH_TOKEN` is set: the issue's stack trace shows real file names
+     (e.g. `PublicProductPage.tsx`), not only `index-….js`.
 
 Limit: Sentry currently reports **browser** errors only. The server sends errors to Sentry only in
 the dev server (`server/index.ts`, via `SENTRY_DSN`), not in the production server
@@ -129,17 +191,31 @@ npm run dev             # http://localhost:5000
 
 There is no `npm test` suite yet. `npm test` only prints a message.
 
-## QR scans and QGIS
+## Location services
 
-- When a shopper opens the passport from a QR code, the page asks for their location (they can say no).
-- Other tools, such as the Python QR tool, can post scans directly. The limit is 60 per minute per IP:
-  ```bash
-  curl -X POST $BASE_URL/api/public/scans -H 'Content-Type: application/json' \
-    -d '{"productId": 1, "lat": 18.5204, "lng": 73.8567, "source": "python-qr-tool"}'
-  ```
-- In QGIS: *Layer → Add Layer → Add Vector Layer*, Protocol *HTTP(S)*, URI
-  `$BASE_URL/api/scans.geojson?key=<SCANS_EXPORT_KEY>`. Add an OpenStreetMap XYZ basemap
-  underneath, and reload the layer to see new scans.
+All of these are free and need no API key:
+
+| Function | Service | Where it runs |
+|---|---|---|
+| Live GPS coordinates | HTML5 Geolocation API (the device's own GPS) | Browser |
+| Address from coordinates | OpenStreetMap Nominatim (`nominatim.openstreetmap.org`) | Browser, plus server `/api/geolocation/reverse` |
+| IP fallback | `ipwho.is`, then `ipapi.co` | Server `/api/geolocation/detect`, then browser |
+| Coordinates from an address | OpenStreetMap Nominatim | Browser, plus server `/api/geolocation/search` |
+| Map view | Google Maps link (`google.com/maps?q=lat,lng`) | Product form, product page, public page |
+
+The order is: GPS, then the IP lookup, then manual entry. Code: `client/src/lib/geolocation.ts`
+and `server/routes.ts`. IP lookups give a city-level estimate, not the exact building, so check
+the result. Nominatim allows about one request per second; that is plenty for a product form.
+
+**QR scan locations (optional).** When a shopper opens the passport from a QR code, the page asks
+for their location; they can say no. Allowed locations are stored in the `scans` table. Other tools
+can post scans too, up to 60 per minute per IP:
+```bash
+curl -X POST $BASE_URL/api/public/scans -H 'Content-Type: application/json' \
+  -d '{"productId": 1, "lat": 18.5204, "lng": 73.8567, "source": "my-tool"}'
+```
+With `SCANS_EXPORT_KEY` set, `GET $BASE_URL/api/scans.geojson?key=<key>` returns all scans as
+GeoJSON, which any map tool can open.
 
 ## API
 
@@ -217,6 +293,17 @@ Dockerfile, docker-compose.yml
 
 Further reading: `implementation.md` (how the latest version was built) and `result.md` (what
 was fixed and what is left).
+
+## Troubleshooting
+
+| Problem | Cause and fix |
+|---|---|
+| "Failed to create product" | The database is missing columns. Redeploy: they are added on start. Check the log for `Database schema is up to date`. |
+| QR opens `localhost` | The QR was downloaded from an old version. Redeploy, download it again and reprint. Set `BASE_URL` to the public address. |
+| Docker: `getaddrinfo ENOTFOUND db.….supabase.co` | `DATABASE_URL` uses the IPv6-only direct host. Use the Session pooler string. |
+| Blank page after a Docker build | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` were empty at build time. Fill `.env` and rebuild. |
+| Location stays empty | The browser blocked location, and the IP services were unreachable. Use **Find coordinates**, or type the address. |
+| Render build fails on `vite` or `esbuild` | Use the build command `npm install --include=dev && npm run build`. |
 
 ## Contributing
 
