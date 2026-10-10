@@ -13,7 +13,8 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write .",
     "test": "echo \"No tests configured\"",
-    "check:storage": "tsx scripts/check-storage.ts"
+    "check:storage": "tsx scripts/check-storage.ts",
+    "check:migrate": "tsx scripts/check-migrate.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

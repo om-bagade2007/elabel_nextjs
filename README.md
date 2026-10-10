@@ -33,8 +33,9 @@ The app runs as one container; the database and login stay on Supabase.
      broke Docker/localhost before.
    - `BASE_URL`: the address phones can open (e.g. `http://192.168.1.20:5000` or your domain).
      Printed QR codes point here.
-2. Run both migrations once in the Supabase SQL editor (both are safe to re-run):
-   `server/db/add_manufacturing_columns.sql` and `server/db/add_ingredients_and_scans.sql`.
+2. Database columns are added automatically when the server starts (`server/migrate.ts` runs the
+   re-runnable files in `server/db/`; look for `Database schema is up to date` in the logs).
+   Only `server/db/profiles.sql` is still a one-time manual step, if it was never run.
 3. Start it:
    ```bash
    docker compose up -d --build
