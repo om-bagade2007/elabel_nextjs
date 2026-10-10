@@ -1,3 +1,6 @@
+> **Historical plan (10 Oct 2026).** QGIS was later dropped in favour of GPS, Nominatim and
+> Google Maps links. See `result.md` §10 for what changed afterwards.
+
 # Todo
 
 - [x] T1 Docker: fixed Dockerfile (husky, dotenv, VITE build args), docker-compose.yml, local image fallback. Verified: image builds, container serves API + pages.

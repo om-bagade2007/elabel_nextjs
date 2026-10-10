@@ -1,3 +1,6 @@
+> **Historical plan (10 Oct 2026).** QGIS was later dropped in favour of GPS, Nominatim and
+> Google Maps links. See `result.md` §10 for what changed afterwards.
+
 # Implementation Plan: E-Label DPP — final integration (10 Oct 2026)
 
 ## Overview

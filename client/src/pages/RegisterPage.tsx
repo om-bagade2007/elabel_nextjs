@@ -257,7 +257,7 @@ export default function RegisterPage() {
           <div className="mt-4 text-center text-sm">
             <p className="text-muted-foreground">
               Already have an account?{' '}
-              <Link href="/login" className="text-primary hover:underline">
+              <Link href="/login" className="font-medium text-primary underline underline-offset-4">
                 Login
               </Link>
             </p>

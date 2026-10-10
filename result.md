@@ -2,6 +2,10 @@
 
 Date: 10 October 2026. How it was built is in `implementation.md`.
 
+> **Update:** QGIS is no longer used. The app gets locations from the device GPS, OpenStreetMap
+> Nominatim and ipwho.is/ipapi.co, and shows them with Google Maps links (README → *Location
+> services*). Section 10 lists the later changes.
+
 ## 1. Outcome
 
 | Goal from the meeting | Result |
@@ -10,7 +14,7 @@ Date: 10 October 2026. How it was built is in `implementation.md`.
 | UI/UX update | **Done.** New design system; every page restyled; works at phone and desktop width |
 | Standard wine-label SVG, filled from the product form, blanks for empty fields | **Done.** 100 × 120 mm, downloadable SVG |
 | DPP QR code in a fixed place on the label | **Done.** 25 mm, bottom-right, opens the product's public passport |
-| QR location data visible on a map (QGIS) | **Done (app side).** Scans are stored and exported as GeoJSON for QGIS |
+| QR location data visible on a map | **Done.** Locations come from GPS, Nominatim and an IP fallback, and open in Google Maps. Scan locations are stored and exported as GeoJSON |
 | Integrate Rohan's Python QR tool | **Ready, not connected.** The tool is not in the repository; it only needs to POST to the scan API |
 | Push to GitHub, collaborators | **Not done here.** Pushing and collaborator invites were left to the team |
 
@@ -111,7 +115,7 @@ These are purely additive. Existing data, endpoints and flows keep working as be
 - **New files:**
   - `docker-compose.yml`
   - `npm run check:storage` (test-database check)
-  - docs (README Docker/QGIS section, `tasks/`, `implementation.md`, `result.md`, screenshots)
+  - docs (README, `tasks/`, `implementation.md`, `result.md`, screenshots)
 - New npm packages: `qrcode` (+ types). `dotenv` was moved, not added.
 
 Deliberate behaviour changes (so nobody is surprised):
@@ -150,14 +154,17 @@ A second round landed on `main` at 17:28–17:45 and was merged too:
 
 ## 7. What the team still has to do
 
+Current list (the original list was mostly done by PRs #1–#6):
+
 1. **Rotate** the Supabase database password and the JWT secret. The old values are public in Git history.
-2. Put the Supabase **Session pooler** URL in `.env` as `DATABASE_URL`, set `BASE_URL` to the
-   address phones can reach, and set `SCANS_EXPORT_KEY`.
-3. Run `server/db/add_manufacturing_columns.sql` and `server/db/add_ingredients_and_scans.sql` once in the Supabase SQL editor.
-4. `docker compose up -d --build` → open `http://<host>:5000`.
-5. Rohan: make the Python QR tool POST `{productId, lat, lng, source}` to `/api/public/scans`.
-6. In QGIS: add the vector layer `BASE_URL/api/scans.geojson?key=<key>` over an OpenStreetMap basemap.
-7. Commit and push to GitHub, and add Rituraj as a collaborator.
+2. **Merge PR #6** (buttons and README), then click **Manual Deploy** on Render.
+3. In Render → *Environment*, set `BASE_URL=https://wine-label-management-system.onrender.com`.
+   It still holds the example value `http://localhost:5000`; the code works around it.
+4. A teammate runs the **Sentry checklist** in the README against the live site.
+5. Download again, and reprint, any QR codes that were saved from a localhost copy.
+6. Next phase: review the two other reference projects in the sheet (one is a US QR-code project).
+   So far only OpenDPP has been reviewed. Converting to headless is deferred until the README work
+   is merged.
 
 ## 8. Known limits
 
@@ -167,6 +174,10 @@ A second round landed on `main` at 17:28–17:45 and was merged too:
   Public Sans it falls back to Georgia/Arial.
 - The scan endpoint's rate limit (60 per IP per minute) lives in memory: it resets on restart and
   is per container. Behind a reverse proxy, every request shares the proxy's IP.
+- Sentry reports browser errors only; the production server (`server/production.ts`) does not
+  initialise it.
+- If no public address is configured, the QR fallback is the fixed Render address
+  (`PRODUCTION_URL` in `client/src/components/label/WineLabel.tsx`). Update it if the site moves.
 - The DPP document's wider goals are not started: role-based views (business, repair, authority),
   GS1 Digital Link URLs, and version history/provenance. The "next task" in the doc (studying
   open-dpp and tractusx) is research, not code.
@@ -176,5 +187,17 @@ A second round landed on `main` at 17:28–17:45 and was merged too:
 1. Landing page: the sample label is the hero.
 2. Log in → Products → open a product → the **Bottle label** panel → download the SVG.
 3. Scan the label's QR with a phone → public passport page → allow location.
-4. QGIS: refresh the scans layer → the scan appears on the map.
-5. `docker compose ps` → the container is shown as healthy.
+4. In the product form, click **Auto-fetch location** → the address fills in → **Preview on map**
+   opens Google Maps.
+5. `docker compose ps` → the container is shown as healthy (or Render's health check is green).
+
+## 10. Later updates
+
+| PR | What changed |
+|---|---|
+| #1 | Docker, UI/UX, label and QR, ingredients, scans. Merged with the teammates' Docker setup and automatic QR work. |
+| #2 | **Fixed "Failed to create product" (500).** The live database lacked the new columns, so the server now applies the re-runnable SQL migrations at startup. Check: `npm run check:migrate`. |
+| #3 | **Fixed QR codes pointing to localhost on Render.** `BASE_URL` was left at the example value; the server also falls back to Render's own public address. |
+| #4 | **QR codes never contain localhost**, even when made on a local copy: they fall back to the live site. The downloaded PNG was decoded to confirm. |
+| #5 | README rewritten to match the code. |
+| #6 | Demo feedback. Action elements are clearly buttons: solid location buttons, bordered outline buttons, underlined links, and plain-looking labels that are no longer clickable. README gained an index, a tutorial, deploy and Sentry checklists, a location-services table and troubleshooting. QGIS references removed. Public map link now uses Google Maps. |
