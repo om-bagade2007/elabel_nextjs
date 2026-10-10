@@ -24,10 +24,18 @@ export const PACKAGING_GASES: Record<string, string> = {
   bottled: 'Bottled in a protective atmosphere',
 };
 
-/** Public base URL (BASE_URL on the server), so QR codes work even when the dashboard runs on localhost. */
+const isLocal = (url: string) => /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|\/|$)/i.test(url);
+
+/** Server's BASE_URL, unless it is a localhost value while the page is served from a real domain. */
+export function pickPublicBase(publicUrl: string | undefined, origin: string) {
+  const base = publicUrl && !(isLocal(publicUrl) && !isLocal(origin)) ? publicUrl : origin;
+  return base.replace(/\/$/, '');
+}
+
+/** Public base URL for QR codes, so they work even when the dashboard runs on localhost. */
 export function useDppBase() {
   const { data } = useQuery<{ publicUrl?: string }>({ queryKey: ['/api/config'] });
-  return (data?.publicUrl || window.location.origin).replace(/\/$/, '');
+  return pickPublicBase(data?.publicUrl, window.location.origin);
 }
 
 /** URL the printed QR code opens: the public DPP page. */

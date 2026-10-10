@@ -99,7 +99,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({
       supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY,
-      publicUrl: process.env.BASE_URL,
+      // Render sets RENDER_EXTERNAL_URL to the service's public https URL
+      publicUrl: process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL,
     });
   });
 
