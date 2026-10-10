@@ -16,8 +16,8 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     if (!isAuthenticated) {
       setLocation('/login');
       toast({
-        title: 'Authentication required',
-        description: 'Please login to access this page.',
+        title: 'Log in to continue',
+        description: 'Products and ingredients are only visible to signed-in producers.',
         variant: 'destructive',
       });
     }

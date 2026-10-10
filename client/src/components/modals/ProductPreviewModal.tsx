@@ -26,7 +26,7 @@ export default function ProductPreviewModal({
 
         <div className="space-y-6">
           {/* Product Image */}
-          <div className="w-full max-w-4xl h-[min(60vh,32rem)] mx-auto bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden p-2">
+          <div className="w-full max-w-4xl h-[min(60vh,32rem)] mx-auto bg-muted rounded-lg flex items-center justify-center overflow-hidden p-2">
             {product.imageUrl ? (
               <img
                 src={product.imageUrl}
@@ -34,7 +34,7 @@ export default function ProductPreviewModal({
                 className="block max-w-full max-h-full object-contain"
               />
             ) : (
-              <span className="text-gray-500">No Image Available</span>
+              <span className="text-muted-foreground">No Image Available</span>
             )}
           </div>
 
@@ -42,19 +42,19 @@ export default function ProductPreviewModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <h3 className="font-semibold mb-2">Brand</h3>
-              <p className="text-gray-600">{product.brand || 'Not specified'}</p>
+              <p className="text-muted-foreground">{product.brand || 'Not specified'}</p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">Net Volume</h3>
-              <p className="text-gray-600">{product.netVolume || 'Not specified'}</p>
+              <p className="text-muted-foreground">{product.netVolume || 'Not specified'}</p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">Vintage</h3>
-              <p className="text-gray-600">{product.vintage || 'Not specified'}</p>
+              <p className="text-muted-foreground">{product.vintage || 'Not specified'}</p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">Wine Type</h3>
-              <p className="text-gray-600">{product.wineType || 'Not specified'}</p>
+              <p className="text-muted-foreground">{product.wineType || 'Not specified'}</p>
             </div>
           </div>
 
@@ -66,7 +66,7 @@ export default function ProductPreviewModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h4 className="font-medium mb-2">Energy</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   {product.kcal ? `${product.kcal} kcal` : ''}
                   {product.kcal && product.kj ? ' / ' : ''}
                   {product.kj ? `${product.kj} kJ` : ''}
@@ -75,19 +75,19 @@ export default function ProductPreviewModal({
               </div>
               <div>
                 <h4 className="font-medium mb-2">Fat</h4>
-                <p className="text-sm text-gray-600">{product.fat || '0g'}</p>
+                <p className="text-sm text-muted-foreground">{product.fat || '0g'}</p>
               </div>
               <div>
                 <h4 className="font-medium mb-2">Carbohydrates</h4>
-                <p className="text-sm text-gray-600">{product.carbohydrates || 'Not specified'}</p>
+                <p className="text-sm text-muted-foreground">{product.carbohydrates || 'Not specified'}</p>
               </div>
               <div>
                 <h4 className="font-medium mb-2">Sugar Content</h4>
-                <p className="text-sm text-gray-600">{product.sugarContent || 'Not specified'}</p>
+                <p className="text-sm text-muted-foreground">{product.sugarContent || 'Not specified'}</p>
               </div>
               <div>
                 <h4 className="font-medium mb-2">Alcohol Content</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   {product.alcoholContent
                     ? product.alcoholContent.includes('%')
                       ? product.alcoholContent
@@ -97,7 +97,7 @@ export default function ProductPreviewModal({
               </div>
               <div>
                 <h4 className="font-medium mb-2">Portion Size</h4>
-                <p className="text-sm text-gray-600">{product.portionSize || 'Not specified'}</p>
+                <p className="text-sm text-muted-foreground">{product.portionSize || 'Not specified'}</p>
               </div>
             </div>
           </div>
@@ -109,22 +109,22 @@ export default function ProductPreviewModal({
             <h3 className="text-lg font-semibold mb-4">Certifications</h3>
             <div className="flex flex-wrap gap-2">
               {product.organic && (
-                <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                <Badge variant="secondary" className="bg-verified/10 text-verified border-verified/30">
                   Organic
                 </Badge>
               )}
               {product.vegetarian && (
-                <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                <Badge variant="secondary" className="bg-verified/10 text-verified border-verified/30">
                   Vegetarian
                 </Badge>
               )}
               {product.vegan && (
-                <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                <Badge variant="secondary" className="bg-verified/10 text-verified border-verified/30">
                   Vegan
                 </Badge>
               )}
               {!product.organic && !product.vegetarian && !product.vegan && (
-                <span className="text-gray-500">No certifications specified</span>
+                <span className="text-muted-foreground">No certifications specified</span>
               )}
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function ProductPreviewModal({
                   {product.pregnancyWarning && (
                     <div className="flex items-center gap-2.5">
                       <img src="/pregnancy.svg" alt="Pregnancy Warning" className="w-8 h-8" />
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-muted-foreground">
                         Not recommended during pregnancy
                       </span>
                     </div>
@@ -147,7 +147,7 @@ export default function ProductPreviewModal({
                   {product.ageWarning && (
                     <div className="flex items-center gap-2.5">
                       <img src="/below18.svg" alt="Age Warning" className="w-8 h-8" />
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-muted-foreground">
                         Not for sale to persons under legal age
                       </span>
                     </div>
@@ -155,7 +155,7 @@ export default function ProductPreviewModal({
                   {product.drivingWarning && (
                     <div className="flex items-center gap-2.5">
                       <img src="/nocar.svg" alt="Driving Warning" className="w-8 h-8" />
-                      <span className="text-sm text-gray-600">Do not drive after drinking</span>
+                      <span className="text-sm text-muted-foreground">Do not drive after drinking</span>
                     </div>
                   )}
                 </div>
@@ -176,25 +176,25 @@ export default function ProductPreviewModal({
                   {product.operatorType && (
                     <div>
                       <h4 className="font-medium">Operator Type</h4>
-                      <p className="text-sm text-gray-600">{product.operatorType}</p>
+                      <p className="text-sm text-muted-foreground">{product.operatorType}</p>
                     </div>
                   )}
                   {product.operatorName && (
                     <div>
                       <h4 className="font-medium">Operator Name</h4>
-                      <p className="text-sm text-gray-600">{product.operatorName}</p>
+                      <p className="text-sm text-muted-foreground">{product.operatorName}</p>
                     </div>
                   )}
                   {product.operatorAddress && (
                     <div>
                       <h4 className="font-medium">Address</h4>
-                      <p className="text-sm text-gray-600">{product.operatorAddress}</p>
+                      <p className="text-sm text-muted-foreground">{product.operatorAddress}</p>
                     </div>
                   )}
                   {product.operatorInfo && (
                     <div>
                       <h4 className="font-medium">Additional Info</h4>
-                      <p className="text-sm text-gray-600">{product.operatorInfo}</p>
+                      <p className="text-sm text-muted-foreground">{product.operatorInfo}</p>
                     </div>
                   )}
                 </div>
@@ -220,7 +220,7 @@ export default function ProductPreviewModal({
                         href={`https://www.google.com/maps?q=${product.latitude || product.manufacturingLatitude},${product.longitude || product.manufacturingLongitude}`}
                         target="_blank"
                         rel="noreferrer noopener"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-md border border-emerald-200 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-verified bg-verified/10 hover:bg-verified/10 rounded-md border border-verified/30 transition-colors"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                         Open in Google Maps
@@ -231,19 +231,19 @@ export default function ProductPreviewModal({
                   {product.manufacturingLocation && (
                     <div>
                       <h4 className="font-medium">Facility / Estate</h4>
-                      <p className="text-sm text-gray-600">{product.manufacturingLocation}</p>
+                      <p className="text-sm text-muted-foreground">{product.manufacturingLocation}</p>
                     </div>
                   )}
                   {product.manufacturingAddress && (
                     <div>
                       <h4 className="font-medium">Address</h4>
-                      <p className="text-sm text-gray-600">{product.manufacturingAddress}</p>
+                      <p className="text-sm text-muted-foreground">{product.manufacturingAddress}</p>
                     </div>
                   )}
                   {product.manufacturingCity && (
                     <div>
                       <h4 className="font-medium">City / State</h4>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {[product.manufacturingCity, product.manufacturingState]
                           .filter(Boolean)
                           .join(', ')}
@@ -253,7 +253,7 @@ export default function ProductPreviewModal({
                   {product.manufacturingCountry && (
                     <div>
                       <h4 className="font-medium">Country / Postal Code</h4>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {[product.manufacturingCountry, product.manufacturingPostalCode]
                           .filter(Boolean)
                           .join(' ')}
@@ -263,7 +263,7 @@ export default function ProductPreviewModal({
                   {(product.latitude || product.manufacturingLatitude) && (
                     <div className="col-span-2">
                       <h4 className="font-medium">GPS Coordinates (Lat, Lon)</h4>
-                      <p className="text-sm text-gray-600 font-mono">
+                      <p className="text-sm text-muted-foreground font-mono">
                         {product.latitude || product.manufacturingLatitude},{' '}
                         {product.longitude || product.manufacturingLongitude}
                       </p>
@@ -282,25 +282,25 @@ export default function ProductPreviewModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h4 className="font-medium mb-2">Country of Origin</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   {product.countryOfOrigin || 'Not specified'}
                 </p>
               </div>
               <div>
                 <h4 className="font-medium mb-2">Appellation</h4>
-                <p className="text-sm text-gray-600">{product.appellation || 'Not specified'}</p>
+                <p className="text-sm text-muted-foreground">{product.appellation || 'Not specified'}</p>
               </div>
               <div>
                 <h4 className="font-medium mb-2">SKU</h4>
-                <p className="text-sm text-gray-600">{product.sku || 'Not specified'}</p>
+                <p className="text-sm text-muted-foreground">{product.sku || 'Not specified'}</p>
               </div>
               <div>
                 <h4 className="font-medium mb-2">EAN</h4>
-                <p className="text-sm text-gray-600">{product.ean || 'Not specified'}</p>
+                <p className="text-sm text-muted-foreground">{product.ean || 'Not specified'}</p>
               </div>
               <div>
                 <h4 className="font-medium mb-2">Packaging Gases</h4>
-                <p className="text-sm text-gray-600">{product.packagingGases || 'Not specified'}</p>
+                <p className="text-sm text-muted-foreground">{product.packagingGases || 'Not specified'}</p>
               </div>
             </div>
           </div>

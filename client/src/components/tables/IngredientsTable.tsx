@@ -31,37 +31,37 @@ export default function IngredientsTable({
   onDuplicate,
 }: IngredientsTableProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div className="overflow-x-auto rounded-[10px] border bg-card">
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-50 border-b border-gray-200">
-            <TableHead className="text-left px-6 py-4 text-sm font-semibold text-gray-900">
+          <TableRow className="bg-muted border-b border-border">
+            <TableHead className="text-left px-6 py-4 text-sm font-semibold text-foreground">
               Name
             </TableHead>
-            <TableHead className="text-left px-6 py-4 text-sm font-semibold text-gray-900">
+            <TableHead className="text-left px-6 py-4 text-sm font-semibold text-foreground">
               Category
             </TableHead>
-            <TableHead className="text-left px-6 py-4 text-sm font-semibold text-gray-900">
+            <TableHead className="text-left px-6 py-4 text-sm font-semibold text-foreground">
               E Number
             </TableHead>
-            <TableHead className="text-left px-6 py-4 text-sm font-semibold text-gray-900">
+            <TableHead className="text-left px-6 py-4 text-sm font-semibold text-foreground">
               Allergens
             </TableHead>
-            <TableHead className="text-left px-6 py-4 text-sm font-semibold text-gray-900">
+            <TableHead className="text-left px-6 py-4 text-sm font-semibold text-foreground">
               Actions
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody className="divide-y divide-gray-200">
           {ingredients.map((ingredient) => (
-            <TableRow key={ingredient.id} className="hover:bg-gray-50 transition-colors">
+            <TableRow key={ingredient.id} className="hover:bg-muted transition-colors">
               <TableCell className="px-6 py-4">
-                <div className="font-medium text-gray-900">{ingredient.name}</div>
+                <div className="font-medium text-foreground">{ingredient.name}</div>
               </TableCell>
-              <TableCell className="px-6 py-4 text-gray-600">
+              <TableCell className="px-6 py-4 text-muted-foreground">
                 {ingredient.category || '-'}
               </TableCell>
-              <TableCell className="px-6 py-4 text-gray-600">{ingredient.eNumber || '-'}</TableCell>
+              <TableCell className="px-6 py-4 text-muted-foreground">{ingredient.eNumber || '-'}</TableCell>
               <TableCell className="px-6 py-4">
                 {ingredient.allergens && ingredient.allergens.length > 0 ? (
                   <div className="flex flex-wrap gap-1">
@@ -76,7 +76,7 @@ export default function IngredientsTable({
                     ))}
                   </div>
                 ) : (
-                  <span className="text-gray-500">None</span>
+                  <span className="text-muted-foreground">None</span>
                 )}
               </TableCell>
               <TableCell className="px-6 py-4">
@@ -85,7 +85,8 @@ export default function IngredientsTable({
                     variant="ghost"
                     size="sm"
                     onClick={() => onEdit?.(ingredient)}
-                    className="text-gray-600 hover:text-primary p-1"
+                    aria-label={`Edit ${ingredient.name}`}
+                    className="text-muted-foreground hover:text-primary p-1"
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
@@ -94,7 +95,8 @@ export default function IngredientsTable({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-gray-600 hover:text-primary p-1"
+                        aria-label={`More actions for ${ingredient.name}`}
+                        className="text-muted-foreground hover:text-primary p-1"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </Button>
@@ -110,7 +112,7 @@ export default function IngredientsTable({
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onDelete?.(ingredient)}
-                        className="text-red-600 focus:text-red-600"
+                        className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete

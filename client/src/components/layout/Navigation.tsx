@@ -1,5 +1,5 @@
 import { useLocation } from 'wouter';
-import { Box, User, LogOut } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -13,8 +13,7 @@ export default function Navigation() {
     logout();
     setLocation('/');
     toast({
-      title: 'Logged out successfully',
-      description: 'You have been signed out of your account.',
+      title: 'Logged out',
     });
   };
 
@@ -28,8 +27,8 @@ export default function Navigation() {
     if (isProtected && !isAuthenticated) {
       setLocation('/login');
       toast({
-        title: 'Authentication required',
-        description: 'Please login to access this page.',
+        title: 'Log in to continue',
+        description: 'Products and ingredients are only visible to signed-in producers.',
         variant: 'destructive',
       });
       return;
@@ -37,60 +36,47 @@ export default function Navigation() {
     setLocation(path);
   };
 
+  const isActive = (path: string) => (path === '/' ? location === '/' : location.startsWith(path));
+
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Box className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-semibold text-gray-900">Elabel</span>
-          </div>
+    <nav className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur" aria-label="Main">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:gap-8 sm:px-6 lg:px-8">
+        <button onClick={() => setLocation('/')} className="shrink-0 font-display text-lg text-primary sm:text-xl">
+          Open E-Label
+        </button>
 
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.path, item.protected || false)}
-                className={`text-gray-600 hover:text-primary transition-colors ${
-                  location === item.path ? 'text-primary font-semibold' : ''
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+        <div className="flex min-w-0 flex-1 items-center sm:gap-2">
+          {navItems.slice(1).map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleNavClick(item.path, item.protected || false)}
+              aria-current={isActive(item.path) ? 'page' : undefined}
+              className={`min-h-11 rounded-md px-2 text-sm sm:px-3 transition-colors hover:bg-muted ${
+                isActive(item.path) ? 'font-semibold text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
 
-          {/* User Menu */}
-          <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
-              <>
-                <span className="text-sm text-gray-600 hidden sm:block">Welcome, {user?.email || user?.id}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="text-gray-600 hover:text-primary"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation('/login')}
-                className="text-gray-600 hover:text-primary"
-              >
-                <User className="w-4 h-4 mr-2" />
-                Login
+        <div className="flex shrink-0 items-center gap-3">
+          {isAuthenticated ? (
+            <>
+              <span className="hidden max-w-48 truncate text-sm text-muted-foreground lg:block">
+                {user?.email || user?.id}
+              </span>
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground">
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="sr-only sm:not-sr-only">Log out</span>
               </Button>
-            )}
-          </div>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setLocation('/login')}>
+              <User className="h-4 w-4 sm:mr-2" />
+              <span className="sr-only sm:not-sr-only">Log in</span>
+            </Button>
+          )}
         </div>
       </div>
     </nav>

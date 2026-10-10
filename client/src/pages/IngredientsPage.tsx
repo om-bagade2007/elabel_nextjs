@@ -172,19 +172,17 @@ export default function IngredientsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Ingredients</h1>
-        <p className="text-gray-600">Manage ingredients and allergen information</p>
+        <h1 className="mb-2 text-4xl">Ingredients</h1>
+        <p className="text-muted-foreground">Manage ingredients and allergen information</p>
       </div>
 
       {/* Actions Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex flex-wrap gap-3">
           <Button
-            onClick={() => setLocation('/ingredients/create')}
-            className="bg-accent hover:bg-accent/90 text-white font-medium"
-          >
+            onClick={() => setLocation('/ingredients/create')}>
             <Plus className="w-4 h-4 mr-2" />
-            Create New
+            New ingredient
           </Button>
           <Button variant="outline" onClick={handleImport}>
             <Upload className="w-4 h-4 mr-2" />
@@ -197,7 +195,7 @@ export default function IngredientsPage() {
         </div>
 
         <div className="relative w-full sm:w-auto">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             placeholder="Search ingredients..."
             value={searchTerm}

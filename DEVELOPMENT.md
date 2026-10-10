@@ -30,13 +30,7 @@ npm run dev
 
 ### Option 3: Docker Setup
 
-```bash
-# Start with Docker Compose (includes PostgreSQL)
-docker-compose up -d
-
-# The app will be available at http://localhost:5000
-# PostgreSQL will run on localhost:5432
-```
+See "Run with Docker" in README.md (`docker compose up -d --build`, database stays on Supabase).
 
 ## Database Configuration
 

@@ -20,6 +20,45 @@ A full-stack web application for managing wine products and ingredients with imp
 - **File Upload**: Multer for image handling
 - **Excel Processing**: XLSX library for import/export
 
+## Run with Docker (deployment)
+
+The app runs as one container; the database and login stay on Supabase.
+
+1. `cp .env.example .env` (PowerShell: `Copy-Item .env.example .env`) and fill it in. `VITE_*` values
+   are baked into the browser bundle at build time; server secrets stay in `.env` at runtime. Two
+   values matter most:
+   - `DATABASE_URL`: use the **Session pooler** string from Supabase → *Connect* → *Session pooler*
+     (`postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres`).
+     The direct `db.<ref>.supabase.co` host is IPv6-only, and Docker cannot reach it. This is what
+     broke Docker/localhost before.
+   - `BASE_URL`: the address phones can open (e.g. `http://192.168.1.20:5000` or your domain).
+     Printed QR codes point here.
+2. Run both migrations once in the Supabase SQL editor (both are safe to re-run):
+   `server/db/add_manufacturing_columns.sql` and `server/db/add_ingredients_and_scans.sql`.
+3. Start it:
+   ```bash
+   docker compose up -d --build
+   curl http://localhost:5000/api/health   # {"status":"ok"}
+   ```
+   Logs: `docker compose logs -f app`. Stop: `docker compose down`. Uploaded images live in the
+   `uploads` Docker volume. Update after a `git pull` with the same `up` command. Never commit `.env`.
+
+### Wine label and QR code
+Each product page shows a 100 × 120 mm SVG back label (standard 750 ml bottle) filled from the
+product form. Empty fields stay blank. The DPP QR code sits at a fixed spot bottom-right (25 mm) and
+opens `BASE_URL/qr/product/<id>`. Use **Download label (SVG)** for print; pictograms are embedded.
+
+### QR scan locations → QGIS
+- When a shopper scans the QR, the public page asks the browser for location (they can decline).
+- Other tools (e.g. the Python QR tool) can post scans directly:
+  ```bash
+  curl -X POST $BASE_URL/api/public/scans -H 'Content-Type: application/json' \
+    -d '{"productId": 1, "lat": 18.5204, "lng": 73.8567, "source": "python-qr-tool"}'
+  ```
+- Set `SCANS_EXPORT_KEY` in `.env`, then in QGIS: *Layer → Add Layer → Add Vector Layer →
+  Protocol: HTTP(S)* with URI `$BASE_URL/api/scans.geojson?key=<SCANS_EXPORT_KEY>`. Add an
+  OpenStreetMap XYZ basemap underneath. Reload the layer to see new scans.
+
 ## Local Setup
 
 ### Prerequisites
@@ -88,43 +127,6 @@ A full-stack web application for managing wine products and ingredients with imp
    ```
 
 The application will be available at `http://localhost:5000`
-
-## Docker deployment
-
-Docker builds the Vite frontend and Express production server into a multi-stage image. The
-database and Supabase services remain external; provide their credentials through `.env`.
-
-1. Copy the example environment file and set real values:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   On PowerShell, use `Copy-Item .env.example .env`.
-
-2. Ensure `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and (optionally)
-   `VITE_SENTRY_DSN` are set. These values are embedded into the browser bundle at image-build
-   time. Keep server-only secrets such as `DATABASE_URL` and `SUPABASE_SERVICE_KEY` in `.env`;
-   they are passed to the container only at runtime.
-
-3. Build and start the application:
-
-   ```bash
-   docker compose up --build -d
-   ```
-
-   Open `http://localhost:5000`. The application health endpoint is
-   `http://localhost:5000/api/health`.
-
-4. View logs or stop the service:
-
-   ```bash
-   docker compose logs -f app
-   docker compose down
-   ```
-
-Uploaded files are stored in the named `uploads` volume and survive container replacement.
-Do not commit `.env`; it is excluded by `.gitignore`.
 
 ## Development Commands
 

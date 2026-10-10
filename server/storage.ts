@@ -1,16 +1,19 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import {
   users,
   products,
   ingredients,
+  scans,
   type User,
   type InsertUser,
   type Product,
   type InsertProduct,
   type Ingredient,
   type InsertIngredient,
+  type LabelIngredient,
+  type Scan,
 } from '@shared/schema';
 
 const connectionString = process.env.DATABASE_URL!;
@@ -151,6 +154,43 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(ingredients.id, id), eq(ingredients.ownerId, ownerId)))
       .returning();
     return result[0];
+  }
+
+  // Keeps the order the user picked, which is the order printed on the label
+  async getLabelIngredients(ids: number[] | null): Promise<LabelIngredient[]> {
+    if (!ids?.length) return [];
+    const rows = await db
+      .select({
+        id: ingredients.id,
+        name: ingredients.name,
+        eNumber: ingredients.eNumber,
+        allergens: ingredients.allergens,
+        category: ingredients.category,
+      })
+      .from(ingredients)
+      .where(inArray(ingredients.id, ids));
+    return ids.flatMap((id) => rows.filter((r) => r.id === id));
+  }
+
+  async createScan(scan: Omit<Scan, 'id' | 'createdAt'>): Promise<Scan> {
+    const result = await db.insert(scans).values(scan).returning();
+    return result[0];
+  }
+
+  async getScans() {
+    return await db
+      .select({
+        id: scans.id,
+        productId: scans.productId,
+        productName: products.name,
+        lat: scans.lat,
+        lng: scans.lng,
+        source: scans.source,
+        createdAt: scans.createdAt,
+      })
+      .from(scans)
+      .leftJoin(products, eq(scans.productId, products.id))
+      .orderBy(desc(scans.createdAt));
   }
 
   async deleteIngredient(id: number, ownerId: string): Promise<boolean> {

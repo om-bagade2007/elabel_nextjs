@@ -61,7 +61,7 @@ export default function EditIngredientPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading ingredient...</div>
+          <div className="text-muted-foreground">Loading ingredient...</div>
         </div>
       </div>
     );
@@ -71,7 +71,7 @@ export default function EditIngredientPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Ingredient not found</div>
+          <div className="text-muted-foreground">Ingredient not found</div>
         </div>
       </div>
     );
@@ -81,8 +81,8 @@ export default function EditIngredientPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit Ingredient</h1>
-        <p className="text-gray-600">Update ingredient information</p>
+        <h1 className="mb-2 text-4xl">Edit Ingredient</h1>
+        <p className="text-muted-foreground">Update ingredient information</p>
       </div>
 
       <IngredientForm

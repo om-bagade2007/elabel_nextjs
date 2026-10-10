@@ -2,7 +2,12 @@ import type { Express } from 'express';
 import express from 'express';
 import { createServer, type Server } from 'http';
 import { storage } from './storage';
-import { insertProductSchema, insertIngredientSchema, importProductSchema } from '@shared/schema';
+import {
+  insertProductSchema,
+  insertIngredientSchema,
+  importProductSchema,
+  insertScanSchema,
+} from '@shared/schema';
 import multer from 'multer';
 import { put } from '@vercel/blob';
 import path from 'path';
@@ -94,6 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({
       supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY,
+      publicUrl: process.env.BASE_URL,
     });
   });
 
@@ -260,8 +266,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/get-url', requireAuth, uploadBlob.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No image file uploaded' });
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      return res.status(503).json({ error: 'Image storage is not configured on the server.' });
+    if (!process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN === 'token') {
+      // Self-hosted (Docker): keep images on the uploads volume
+      const filename = `image-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(req.file.originalname)}`;
+      await fs.promises.writeFile(path.join(uploadsDir, filename), req.file.buffer);
+      return res.status(200).json({ url: `/uploads/${filename}` });
     }
 
     try {
@@ -348,9 +357,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Product not found' });
       }
       const { createdBy, ownerId, ...publicProduct } = product;
-      res.json(publicProduct);
+      const ingredients = await storage.getLabelIngredients(product.ingredientIds);
+      res.json({ ...publicProduct, ingredients });
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch product' });
+    }
+  });
+
+  // QR scans with a shared location (from the public page or the Python QR tool)
+  // ponytail: in-memory per-IP limit, resets on restart; use a shared store if running several replicas
+  const scanHits = new Map<string, { count: number; reset: number }>();
+  app.post('/api/public/scans', async (req, res) => {
+    const ip = req.ip || 'unknown';
+    const now = Date.now();
+    const hit = scanHits.get(ip);
+    if (!hit || hit.reset < now) {
+      if (scanHits.size > 10000) scanHits.clear();
+      scanHits.set(ip, { count: 1, reset: now + 60_000 });
+    } else if (++hit.count > 60) {
+      return res.status(429).json({ error: 'Too many scans, try again in a minute' });
+    }
+
+    const parsed = insertScanSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid scan', details: parsed.error.issues });
+    }
+    try {
+      if (!(await storage.getPublicProduct(parsed.data.productId))) {
+        return res.status(404).json({ error: 'Product not found' });
+      }
+      const scan = await storage.createScan({ source: null, ...parsed.data });
+      return res.status(201).json({ id: scan.id });
+    } catch (error) {
+      console.error('Scan save failed:', error);
+      return res.status(500).json({ error: 'Failed to save scan' });
+    }
+  });
+
+  // GeoJSON for QGIS: Layer > Add Layer > Add Vector Layer > Protocol HTTP(S) > this URL
+  app.get('/api/scans.geojson', async (req, res) => {
+    const key = process.env.SCANS_EXPORT_KEY;
+    if (!key) return res.status(404).json({ error: 'Scan export is disabled (set SCANS_EXPORT_KEY)' });
+    if (req.query.key !== key) return res.status(401).json({ error: 'Invalid export key' });
+    try {
+      const rows = await storage.getScans();
+      return res.json({
+        type: 'FeatureCollection',
+        features: rows.map(({ lat, lng, ...props }) => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [lng, lat] },
+          properties: props,
+        })),
+      });
+    } catch (error) {
+      console.error('Scan export failed:', error);
+      return res.status(500).json({ error: 'Failed to export scans' });
     }
   });
 
@@ -361,7 +422,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const product = await storage.getPublicProduct(id);
       if (!product) return res.status(404).json({ error: 'Product not found' });
       const { ownerId, createdBy, ...visibleProduct } = product;
-      return res.json({ ...visibleProduct, canEdit: ownerId === userId });
+      const ingredients = await storage.getLabelIngredients(product.ingredientIds);
+      return res.json({ ...visibleProduct, ingredients, canEdit: ownerId === userId });
     } catch {
       return res.status(500).json({ error: 'Failed to fetch product' });
     }
