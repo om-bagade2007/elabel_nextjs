@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowLeft, Download, Copy, Edit, Trash2, Eye, QrCode, Upload } from 'lucide-react';
+import { ArrowLeft, Download, Copy, Edit, Trash2, Eye, QrCode, Upload, MapPin, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -253,11 +253,12 @@ export default function ProductDetailPage() {
       </div>
 
       <Tabs defaultValue="details" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="image">Product Image</TabsTrigger>
           <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
           <TabsTrigger value="certifications">Certifications</TabsTrigger>
+          <TabsTrigger value="location">Manufacturing</TabsTrigger>
           <TabsTrigger value="fbo">FBO Details</TabsTrigger>
           <TabsTrigger value="digital">Digital Assets</TabsTrigger>
         </TabsList>
@@ -329,6 +330,22 @@ export default function ProductDetailPage() {
                     Packaging Gases
                   </label>
                   <p className="text-gray-900">{product.packagingGases || 'Not specified'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Manufacturing Facility
+                  </label>
+                  <p className="text-gray-900">{product.manufacturingLocation || 'Not specified'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Coordinates (Lat, Lon)
+                  </label>
+                  <p className="text-gray-900">
+                    {product.latitude || product.manufacturingLatitude
+                      ? `${product.latitude || product.manufacturingLatitude}, ${product.longitude || product.manufacturingLongitude}`
+                      : 'Not specified'}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -467,6 +484,118 @@ export default function ProductDetailPage() {
                 {!product.organic && !product.vegetarian && !product.vegan && (
                   <span className="text-gray-500">No certifications specified</span>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Manufacturing Location Tab */}
+        <TabsContent value="location" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 text-emerald-800 rounded-lg">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <CardTitle>Manufacturing Location & Traceability</CardTitle>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Physical manufacturing plant, winery premises, and GPS coordinates.
+                  </p>
+                </div>
+              </div>
+              {(product.latitude || product.manufacturingLatitude) &&
+                (product.longitude || product.manufacturingLongitude) && (
+                  <a
+                    href={`https://www.google.com/maps?q=${product.latitude || product.manufacturingLatitude},${product.longitude || product.manufacturingLongitude}`}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-md border border-emerald-200 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Open in Google Maps
+                  </a>
+                )}
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Facility / Estate Name
+                  </label>
+                  <p className="text-gray-900 font-medium">
+                    {product.manufacturingLocation || 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Street Address
+                  </label>
+                  <p className="text-gray-900">
+                    {product.manufacturingAddress || 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    City / Town
+                  </label>
+                  <p className="text-gray-900">
+                    {product.manufacturingCity || 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    State / Region / Province
+                  </label>
+                  <p className="text-gray-900">
+                    {product.manufacturingState || 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Country
+                  </label>
+                  <p className="text-gray-900">
+                    {product.manufacturingCountry || 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Postal / ZIP Code
+                  </label>
+                  <p className="text-gray-900">
+                    {product.manufacturingPostalCode || 'Not specified'}
+                  </p>
+                </div>
+
+                <div className="md:col-span-2 pt-2 border-t border-gray-100">
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                        GPS Coordinates
+                      </span>
+                      {(product.latitude || product.manufacturingLatitude) && (
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-200">
+                          Active Pin
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-sm">
+                      <div>
+                        <span className="text-xs text-gray-500 block font-sans">Latitude:</span>
+                        <span className="font-semibold text-gray-900">
+                          {product.latitude || product.manufacturingLatitude || 'Not specified'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500 block font-sans">Longitude:</span>
+                        <span className="font-semibold text-gray-900">
+                          {product.longitude || product.manufacturingLongitude || 'Not specified'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

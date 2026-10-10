@@ -120,6 +120,40 @@ const PublicProductPage = () => {
         <Info label="Additional Info" value={product.operatorInfo} />
       </Section>
 
+      {/* Manufacturing Location Details */}
+      {(product.manufacturingLocation ||
+        product.manufacturingAddress ||
+        product.latitude ||
+        product.manufacturingLatitude) && (
+        <>
+          <Separator />
+          <Section title="Manufacturing Location & Coordinates">
+            <div className="grid grid-cols-2 gap-4">
+              <Info label="Facility / Estate" value={product.manufacturingLocation} />
+              <Info label="Address" value={product.manufacturingAddress} />
+              <Info
+                label="City / State"
+                value={[product.manufacturingCity, product.manufacturingState]
+                  .filter(Boolean)
+                  .join(', ')}
+              />
+              <Info
+                label="Country"
+                value={[product.manufacturingCountry, product.manufacturingPostalCode]
+                  .filter(Boolean)
+                  .join(' ')}
+              />
+              {(product.latitude || product.manufacturingLatitude) && (
+                <Info
+                  label="GPS Coordinates"
+                  value={`${product.latitude || product.manufacturingLatitude}, ${product.longitude || product.manufacturingLongitude}`}
+                />
+              )}
+            </div>
+          </Section>
+        </>
+      )}
+
       <Separator />
 
       {/* Additional Details */}

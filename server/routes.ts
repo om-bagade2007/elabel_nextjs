@@ -99,6 +99,165 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
+  // Geolocation detection and geocoding helper endpoints
+  app.get('/api/geolocation/detect', async (req, res) => {
+    try {
+      let ip = req.headers['x-forwarded-for'];
+      if (Array.isArray(ip)) ip = ip[0];
+      if (typeof ip === 'string' && ip.includes(',')) ip = ip.split(',')[0].trim();
+
+      const isLocal =
+        !ip ||
+        ip === '::1' ||
+        ip === '127.0.0.1' ||
+        ip.startsWith('192.168.') ||
+        ip.startsWith('10.');
+
+      const ipQueryUrl = isLocal
+        ? 'https://ipwho.is/'
+        : `https://ipwho.is/${encodeURIComponent(ip as string)}`;
+
+      try {
+        const geoRes = await fetch(ipQueryUrl, { signal: AbortSignal.timeout(6000) });
+        const data = await geoRes.json();
+
+        if (data && data.success !== false && (data.latitude || data.city)) {
+          return res.json({
+            success: true,
+            latitude: data.latitude != null ? String(data.latitude) : '',
+            longitude: data.longitude != null ? String(data.longitude) : '',
+            city: data.city || '',
+            state: data.region || '',
+            country: data.country || '',
+            postalCode: data.postal || '',
+            address: [data.city, data.region, data.country].filter(Boolean).join(', '),
+            locationName: data.city ? `${data.city} Facility` : '',
+            source: 'ip',
+          });
+        }
+      } catch (e) {
+        console.warn('ipwho.is failed, trying ipapi.co fallback:', e);
+      }
+
+      // Fallback: ipapi.co
+      const fallbackRes = await fetch('https://ipapi.co/json/', {
+        signal: AbortSignal.timeout(6000),
+      });
+      if (fallbackRes.ok) {
+        const fbData = await fallbackRes.json();
+        return res.json({
+          success: true,
+          latitude: fbData.latitude != null ? String(fbData.latitude) : '',
+          longitude: fbData.longitude != null ? String(fbData.longitude) : '',
+          city: fbData.city || '',
+          state: fbData.region || '',
+          country: fbData.country_name || fbData.country || '',
+          postalCode: fbData.postal || '',
+          address: [fbData.city, fbData.region, fbData.country_name].filter(Boolean).join(', '),
+          locationName: fbData.city ? `${fbData.city} Facility` : '',
+          source: 'ip',
+        });
+      }
+
+      return res.status(404).json({ success: false, error: 'Could not determine location from IP' });
+    } catch (err: any) {
+      console.error('Geo detect error:', err);
+      return res.status(500).json({ success: false, error: err.message || 'Geolocation detection failed' });
+    }
+  });
+
+  app.get('/api/geolocation/reverse', async (req, res) => {
+    try {
+      const lat = req.query.lat as string;
+      const lon = req.query.lon as string;
+      if (!lat || !lon) {
+        return res.status(400).json({ error: 'lat and lon query parameters required' });
+      }
+
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`,
+        {
+          headers: {
+            'User-Agent': 'OpenELabel-App/1.0 (contact@openelabel.org)',
+          },
+          signal: AbortSignal.timeout(8000),
+        },
+      );
+
+      if (!response.ok) {
+        return res.status(502).json({ error: 'Reverse geocode service unavailable' });
+      }
+
+      const data = await response.json();
+      const addr = data.address || {};
+      const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
+      const state = addr.state || addr.region || '';
+      const country = addr.country || '';
+      const postalCode = addr.postcode || '';
+      const road = addr.road || addr.street || addr.pedestrian || '';
+      const houseNumber = addr.house_number || '';
+      const street = [houseNumber, road].filter(Boolean).join(' ');
+      const formattedAddress =
+        [street, city, state, postalCode, country].filter(Boolean).join(', ') || data.display_name || '';
+      const locationName =
+        addr.winery || addr.amenity || addr.building || (city ? `${city} Winery / Production Site` : '');
+
+      return res.json({
+        success: true,
+        latitude: lat,
+        longitude: lon,
+        locationName,
+        address: formattedAddress,
+        city,
+        state,
+        country,
+        postalCode,
+      });
+    } catch (err: any) {
+      console.error('Reverse geocode error:', err);
+      return res.status(500).json({ error: err.message || 'Failed to reverse geocode' });
+    }
+  });
+
+  app.get('/api/geolocation/search', async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query || !query.trim()) {
+        return res.status(400).json({ error: 'q query parameter required' });
+      }
+
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query)}&limit=1`,
+        {
+          headers: {
+            'User-Agent': 'OpenELabel-App/1.0 (contact@openelabel.org)',
+          },
+          signal: AbortSignal.timeout(8000),
+        },
+      );
+
+      if (!response.ok) {
+        return res.status(502).json({ error: 'Geocoding service unavailable' });
+      }
+
+      const results = await response.json();
+      if (!Array.isArray(results) || results.length === 0) {
+        return res.status(404).json({ error: 'Location not found' });
+      }
+
+      const item = results[0];
+      return res.json({
+        success: true,
+        latitude: item.lat,
+        longitude: item.lon,
+        displayName: item.display_name,
+      });
+    } catch (err: any) {
+      console.error('Geocoding search error:', err);
+      return res.status(500).json({ error: err.message || 'Failed to search location' });
+    }
+  });
+
   app.post('/api/get-url', requireAuth, uploadBlob.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No image file uploaded' });
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
@@ -149,6 +308,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Sugar Content': product.sugarContent,
         Appellation: product.appellation,
         SKU: product.sku,
+        'Manufacturing Location': product.manufacturingLocation,
+        'Manufacturing Address': product.manufacturingAddress,
+        'Manufacturing City': product.manufacturingCity,
+        'Manufacturing Country': product.manufacturingCountry,
+        Latitude: product.latitude || product.manufacturingLatitude,
+        Longitude: product.longitude || product.manufacturingLongitude,
       }));
 
       console.log('Creating Excel worksheet...');
@@ -214,6 +379,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Failed to validate product data' });
     }
 
+    // Sync latitude / longitude and manufacturingLatitude / manufacturingLongitude
+    if (validatedData.latitude && !validatedData.manufacturingLatitude) {
+      validatedData.manufacturingLatitude = validatedData.latitude;
+    } else if (validatedData.manufacturingLatitude && !validatedData.latitude) {
+      validatedData.latitude = validatedData.manufacturingLatitude;
+    }
+    if (validatedData.longitude && !validatedData.manufacturingLongitude) {
+      validatedData.manufacturingLongitude = validatedData.longitude;
+    } else if (validatedData.manufacturingLongitude && !validatedData.longitude) {
+      validatedData.longitude = validatedData.manufacturingLongitude;
+    }
+
     try {
       const product = await storage.createProduct({
         ...validatedData,
@@ -234,6 +411,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .partial()
         .omit({ createdBy: true, ownerId: true })
         .parse(req.body);
+
+      // Sync latitude / longitude and manufacturingLatitude / manufacturingLongitude
+      if (validatedData.latitude && !validatedData.manufacturingLatitude) {
+        validatedData.manufacturingLatitude = validatedData.latitude;
+      } else if (validatedData.manufacturingLatitude && !validatedData.latitude) {
+        validatedData.latitude = validatedData.manufacturingLatitude;
+      }
+      if (validatedData.longitude && !validatedData.manufacturingLongitude) {
+        validatedData.manufacturingLongitude = validatedData.longitude;
+      } else if (validatedData.manufacturingLongitude && !validatedData.longitude) {
+        validatedData.longitude = validatedData.manufacturingLongitude;
+      }
+
       const product = await storage.updateProduct(id, getAuthenticatedUserId(req), validatedData);
       if (!product) {
         return res.status(404).json({ error: 'Product not found' });
