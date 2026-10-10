@@ -26,9 +26,13 @@ export const PACKAGING_GASES: Record<string, string> = {
 
 const isLocal = (url: string) => /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|\/|$)/i.test(url);
 
-/** Server's BASE_URL, unless it is a localhost value while the page is served from a real domain. */
+// Printed QR codes must open on a phone, so they never contain localhost. Products live in the
+// shared Supabase database, so a QR made on a local copy still works on the deployed site.
+export const PRODUCTION_URL = 'https://wine-label-management-system.onrender.com';
+
+/** First public address of: server BASE_URL, the page's own origin, the deployed site. */
 export function pickPublicBase(publicUrl: string | undefined, origin: string) {
-  const base = publicUrl && !(isLocal(publicUrl) && !isLocal(origin)) ? publicUrl : origin;
+  const base = [publicUrl, origin].find((u) => u && !isLocal(u)) || PRODUCTION_URL;
   return base.replace(/\/$/, '');
 }
 
