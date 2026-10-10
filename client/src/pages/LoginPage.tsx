@@ -246,11 +246,11 @@ export default function LoginPage() {
           <div className="mt-6 space-y-2 text-center text-sm">
             <p className="text-muted-foreground">
               Don't have an account?{' '}
-              <Link href="/register" className="text-primary hover:underline font-medium">
+              <Link href="/register" className="font-medium text-primary underline underline-offset-4">
                 Register
               </Link>
             </p>
-            <Link href="/reset-password" className="text-primary hover:underline block font-medium">
+            <Link href="/reset-password" className="block font-medium text-primary underline underline-offset-4">
               Forgot password?
             </Link>
           </div>

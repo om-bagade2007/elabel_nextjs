@@ -211,7 +211,11 @@ export default function ProductDetailPage() {
             Duplicate
           </Button>
           {product.canEdit && (
-            <Button onClick={() => setShowDeleteModal(true)} variant="outline" className="text-destructive">
+            <Button
+              onClick={() => setShowDeleteModal(true)}
+              variant="outline"
+              className="border-destructive/40 text-destructive hover:border-destructive hover:bg-destructive/5"
+            >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
             </Button>
@@ -342,8 +346,8 @@ export default function ProductDetailPage() {
                 </Button>
                 {product.imageUrl && (
                   <Button
-                    variant="ghost"
-                    className="text-destructive"
+                    variant="outline"
+                    className="border-destructive/40 text-destructive hover:border-destructive hover:bg-destructive/5"
                     onClick={() => deleteImageMutation.mutate()}
                     disabled={deleteImageMutation.isPending}
                   >

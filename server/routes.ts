@@ -395,7 +395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GeoJSON for QGIS: Layer > Add Layer > Add Vector Layer > Protocol HTTP(S) > this URL
+  // Scan locations as GeoJSON (opens in any map tool); off unless SCANS_EXPORT_KEY is set
   app.get('/api/scans.geojson', async (req, res) => {
     const key = process.env.SCANS_EXPORT_KEY;
     if (!key) return res.status(404).json({ error: 'Scan export is disabled (set SCANS_EXPORT_KEY)' });

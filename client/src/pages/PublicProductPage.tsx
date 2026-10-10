@@ -208,7 +208,7 @@ const PublicProductPage = () => {
           </address>
           {lat && lng && (
             <a
-              href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=12/${lat}/${lng}`}
+              href={`https://www.google.com/maps?q=${lat},${lng}`}
               target="_blank"
               rel="noreferrer"
               className="mt-3 inline-flex min-h-11 items-center text-sm text-primary underline underline-offset-4"

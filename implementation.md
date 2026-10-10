@@ -1,7 +1,11 @@
 # Implementation: Open E-Label final integration
 
 Date: 10 October 2026. Scope: the items agreed in the meeting (wine-label SVG, DPP QR code, QR
-locations → QGIS, UI/UX refresh, Docker deployment), checked against the DPP reference document.
+locations on a map, UI/UX refresh, Docker deployment), checked against the DPP reference document.
+
+> **Update:** QGIS is no longer used. The app gets locations from the device GPS, OpenStreetMap
+> Nominatim and ipwho.is/ipapi.co, and shows them with Google Maps links (README → *Location
+> services*). Section 10 lists the later changes.
 
 ## 1. Starting point
 
@@ -15,7 +19,7 @@ What the repository already did when work began:
 | QR code | Built by a third-party site (api.qrserver.com) from the *external link*, not the product passport |
 | Ingredients on a product | Missing. Ingredients existed but could not be attached to a product |
 | Wine-label SVG | Missing |
-| QR scan locations / map / QGIS | Missing. The Python QR tool was not in the repository |
+| QR scan locations / map | Missing. The Python QR tool was not in the repository |
 | Docker | Broken. The image did not build |
 | UI | Default component-kit look, purple theme, Replit banner script in `index.html` |
 
@@ -34,7 +38,7 @@ with a real run → fix what the run showed → verify again.**
    - Phase 0: unblock (Docker, secrets)
    - Phase 1: UI/UX
    - Phase 2: label and QR
-   - Phase 3: scans to QGIS
+   - Phase 3: scan locations
    - Phase 4: ship (rebuild, smoke test, docs)
 5. **Verify in the real container.** Every change was checked inside the Docker image the team
    will deploy, not only in a dev server.
@@ -132,20 +136,19 @@ public repository. They were replaced with placeholders and comments.
   point to the public address even when the dashboard is opened on localhost.
 - **Download QR code (SVG)** is also available on its own.
 
-### 4.7 QR scan locations → QGIS
+### 4.7 QR scan locations
 - New table `scans` (product, latitude, longitude, source, time).
 - `POST /api/public/scans` receives scans. It validates coordinates and checks that the product exists.
   - The public page posts one when it is opened from a QR code, but only if the shopper allows
     browser location.
   - The Python QR tool can post the same JSON.
   - Rate limit: 60 scans per IP per minute; more get HTTP 429.
-- `GET /api/scans.geojson?key=…` returns a standard GeoJSON FeatureCollection. QGIS loads it
-  directly as a vector layer. It is protected by `SCANS_EXPORT_KEY`, because shopper locations
-  are personal data.
+- `GET /api/scans.geojson?key=…` returns a standard GeoJSON FeatureCollection that any map tool can
+  open. It is protected by `SCANS_EXPORT_KEY`, because shopper locations are personal data.
 
 ### 4.8 Migration and docs
 - `server/db/add_ingredients_and_scans.sql`: additive and safe to re-run. Tested twice on the test database.
-- README: Docker run steps, pooler explanation, label/QR notes, scan API example, QGIS steps.
+- README: Docker run steps, pooler explanation, label/QR notes, scan API example.
 - DEVELOPMENT.md: the Docker section now points to the README.
 
 ## 5. Files

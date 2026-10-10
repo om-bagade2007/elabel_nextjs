@@ -89,7 +89,7 @@ export default function ResetPasswordPage() {
               <Button variant="outline" className="mt-4" onClick={() => setEmailSent(false)}>
                 Try again
               </Button>
-              <Link href="/login" className="text-primary hover:underline block mt-4">
+              <Link href="/login" className="mt-4 block font-medium text-primary underline underline-offset-4">
                 Back to login
               </Link>
             </div>
@@ -119,7 +119,7 @@ export default function ResetPasswordPage() {
                 </Button>
 
                 <div className="text-center mt-4">
-                  <Link href="/login" className="text-primary hover:underline">
+                  <Link href="/login" className="font-medium text-primary underline underline-offset-4">
                     Back to login
                   </Link>
                 </div>

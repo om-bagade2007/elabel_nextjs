@@ -74,7 +74,7 @@ export default function ProductsTable({
               <TableCell className="px-4 py-3">
                 <button
                   onClick={() => handleViewDetails(product.id)}
-                  className="text-left font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
+                  className="text-left font-medium text-primary underline decoration-primary/40 underline-offset-4 hover:decoration-primary"
                 >
                   {product.name}
                 </button>
