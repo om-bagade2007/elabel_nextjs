@@ -135,6 +135,62 @@ export default function ProductPreviewModal({
             </div>
           </div>
 
+          {/* Manufacturing Location Details */}
+          {(product.manufacturingLocation ||
+            product.manufacturingAddress ||
+            product.latitude ||
+            product.manufacturingLatitude) && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Manufacturing Location & Coordinates</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {product.manufacturingLocation && (
+                    <div>
+                      <h4 className="font-medium">Facility / Estate</h4>
+                      <p className="text-sm text-gray-600">{product.manufacturingLocation}</p>
+                    </div>
+                  )}
+                  {product.manufacturingAddress && (
+                    <div>
+                      <h4 className="font-medium">Address</h4>
+                      <p className="text-sm text-gray-600">{product.manufacturingAddress}</p>
+                    </div>
+                  )}
+                  {product.manufacturingCity && (
+                    <div>
+                      <h4 className="font-medium">City / State</h4>
+                      <p className="text-sm text-gray-600">
+                        {[product.manufacturingCity, product.manufacturingState]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+                    </div>
+                  )}
+                  {product.manufacturingCountry && (
+                    <div>
+                      <h4 className="font-medium">Country / Postal Code</h4>
+                      <p className="text-sm text-gray-600">
+                        {[product.manufacturingCountry, product.manufacturingPostalCode]
+                          .filter(Boolean)
+                          .join(' ')}
+                      </p>
+                    </div>
+                  )}
+                  {(product.latitude || product.manufacturingLatitude) && (
+                    <div className="col-span-2">
+                      <h4 className="font-medium">GPS Coordinates (Lat, Lon)</h4>
+                      <p className="text-sm text-gray-600 font-mono">
+                        {product.latitude || product.manufacturingLatitude},{' '}
+                        {product.longitude || product.manufacturingLongitude}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
           <Separator />
 
           {/* Product Details */}

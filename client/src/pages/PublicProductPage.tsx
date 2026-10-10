@@ -88,6 +88,8 @@ const PublicProductPage = () => {
     p.ageWarning && { src: '/below18.svg', text: 'Not for persons under 18' },
     p.drivingWarning && { src: '/nocar.svg', text: 'Do not drink and drive' },
   ].filter(Boolean) as { src: string; text: string }[];
+  const lat = p.latitude || p.manufacturingLatitude;
+  const lng = p.longitude || p.manufacturingLongitude;
   const keyFacts = [
     ['Volume', p.netVolume],
     ['Alcohol', formatAbv(p.alcoholContent)],
@@ -188,6 +190,32 @@ const PublicProductPage = () => {
               </li>
             ))}
           </ul>
+        </Section>
+      )}
+
+      {(p.manufacturingLocation || p.manufacturingAddress || lat) && (
+        <Section title="Where it was made">
+          <address className="not-italic leading-relaxed">
+            {p.manufacturingLocation && <span className="block font-medium">{p.manufacturingLocation}</span>}
+            {p.manufacturingAddress && <span className="block">{p.manufacturingAddress}</span>}
+            {(p.manufacturingCity || p.manufacturingState || p.manufacturingCountry) && (
+              <span className="block">
+                {[p.manufacturingCity, p.manufacturingState, p.manufacturingPostalCode, p.manufacturingCountry]
+                  .filter(Boolean)
+                  .join(', ')}
+              </span>
+            )}
+          </address>
+          {lat && lng && (
+            <a
+              href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=12/${lat}/${lng}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex min-h-11 items-center text-sm text-primary underline underline-offset-4"
+            >
+              View on map ({Number(lat).toFixed(4)}, {Number(lng).toFixed(4)})
+            </a>
+          )}
         </Section>
       )}
 

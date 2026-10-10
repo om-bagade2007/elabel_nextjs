@@ -121,18 +121,33 @@ Deliberate behaviour changes (so nobody is surprised):
 - The public page now honours Redirect Link.
 - `Dockerfile.new` is deleted.
 
-## 6. What the team still has to do
+## 6. Merged with Rohan's manufacturing-location work
+
+Rohan pushed manufacturing location + automatic geolocation to `main` at 17:05. It was merged into
+this branch:
+- Server and schema changes merged automatically. His geolocation endpoints work in Docker
+  (`/api/geolocation/search` → 200).
+- Three files conflicted with the redesign. His features were kept in the new layout:
+  - **Product form:** his manufacturing section and auto-detect stay. The edit form loads every
+    field (keeping the data-loss fix) plus his latitude/longitude fallbacks. His hard-coded colors
+    now use the design tokens.
+  - **Product page:** his Manufacturing tab is now a "Manufacturing location" section with the
+    Google Maps link.
+  - **Public page:** a "Where it was made" section with an OpenStreetMap link.
+- All checks were run again after the merge: typecheck, Docker build, browser pass, storage check.
+
+## 7. What the team still has to do
 
 1. **Rotate** the Supabase database password and the JWT secret. The old values are public in Git history.
 2. Put the Supabase **Session pooler** URL in `.env` as `DATABASE_URL`, set `BASE_URL` to the
    address phones can reach, and set `SCANS_EXPORT_KEY`.
-3. Run `server/db/add_ingredients_and_scans.sql` once in the Supabase SQL editor.
+3. Run `server/db/add_manufacturing_columns.sql` and `server/db/add_ingredients_and_scans.sql` once in the Supabase SQL editor.
 4. `docker compose up -d --build` → open `http://<host>:5000`.
 5. Rohan: make the Python QR tool POST `{productId, lat, lng, source}` to `/api/public/scans`.
 6. In QGIS: add the vector layer `BASE_URL/api/scans.geojson?key=<key>` over an OpenStreetMap basemap.
 7. Commit and push to GitHub, and add Rituraj as a collaborator.
 
-## 7. Known limits
+## 8. Known limits
 
 - Label text wrapping estimates character width; very long ingredient lists are cut at 5 lines on the
   label (the full list is always on the passport page).
@@ -144,7 +159,7 @@ Deliberate behaviour changes (so nobody is surprised):
   GS1 Digital Link URLs, and version history/provenance. The "next task" in the doc (studying
   open-dpp and tractusx) is research, not code.
 
-## 8. Demo script (evening meeting)
+## 9. Demo script (evening meeting)
 
 1. Landing page: the sample label is the hero.
 2. Log in → Products → open a product → the **Bottle label** panel → download the SVG.

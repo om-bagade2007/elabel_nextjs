@@ -15,6 +15,6 @@
 
 ## Left for the team
 - [ ] Put the Supabase **Session pooler** URL in `.env` → `docker compose up -d --build`.
-- [ ] Run `server/db/add_ingredients_and_scans.sql` in Supabase SQL editor.
+- [ ] Run `server/db/add_manufacturing_columns.sql` and `server/db/add_ingredients_and_scans.sql` in Supabase SQL editor.
 - [ ] Rohan: point the Python QR tool at `POST /api/public/scans`.
-- [ ] Push to GitHub (not done from here).
+- [x] Pushed branch `feature/docker-ui-label-qgis`, merged with Rohan's manufacturing-location commit, PR opened.

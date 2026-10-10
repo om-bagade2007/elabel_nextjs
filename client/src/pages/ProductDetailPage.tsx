@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowLeft, Download, Copy, Edit, Trash2, Eye, QrCode, Upload, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Download, Copy, Edit, Trash2, Eye, QrCode, Upload, ExternalLink, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -167,6 +167,8 @@ export default function ProductDetailPage() {
 
   const subtitle = [product.brand, product.wineType, product.vintage].filter(Boolean).join(', ');
   const ingredients = product.ingredients || [];
+  const lat = product.latitude || product.manufacturingLatitude;
+  const lng = product.longitude || product.manufacturingLongitude;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -272,6 +274,32 @@ export default function ProductDetailPage() {
               ['Name', product.operatorName],
               ['Address', product.operatorAddress],
               ['More information', product.operatorInfo],
+            ]}
+          />
+
+          <Facts
+            title="Manufacturing location"
+            rows={[
+              ['Facility or estate', product.manufacturingLocation],
+              ['Street address', product.manufacturingAddress],
+              ['City', product.manufacturingCity],
+              ['State or region', product.manufacturingState],
+              ['Country', product.manufacturingCountry],
+              ['Postal code', product.manufacturingPostalCode],
+              [
+                'GPS coordinates',
+                lat && lng ? (
+                  <a
+                    href={`https://www.google.com/maps?q=${lat},${lng}`}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center gap-1.5 text-primary underline underline-offset-4"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    {lat}, {lng}
+                  </a>
+                ) : null,
+              ],
             ]}
           />
 
