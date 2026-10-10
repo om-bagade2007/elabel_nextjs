@@ -1,4 +1,5 @@
-import { Eye, Edit, MoreVertical, Copy, Trash2, FileText } from 'lucide-react';
+import { Eye, Edit, MoreVertical, Copy, Trash2, FileText, ExternalLink, Download } from 'lucide-react';
+import { downloadQrPng, useDppBase } from '@/components/label/WineLabel';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -33,6 +34,8 @@ export default function ProductsTable({
   onPreview,
 }: ProductsTableProps) {
   const [, setLocation] = useLocation();
+  const dppBase = useDppBase();
+  const fileSafe = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
   const handleViewDetails = (productId: number) => {
     setLocation(`/products/${productId}`);
@@ -98,6 +101,18 @@ export default function ProductsTable({
                     <DropdownMenuItem onClick={() => onPreview?.(product)}>
                       <Eye className="mr-2 h-4 w-4" />
                       Preview
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.open(`/qr/product/${product.id}`, '_blank')}>
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Public passport
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        downloadQrPng(`${dppBase}/qr/product/${product.id}?src=qr`, `${fileSafe(product.name)}-dpp-qr.png`)
+                      }
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download QR code (PNG)
                     </DropdownMenuItem>
                     {product.canEdit && (
                       <DropdownMenuItem onClick={() => onEdit?.(product)}>

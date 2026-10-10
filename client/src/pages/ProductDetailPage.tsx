@@ -10,6 +10,7 @@ import { apiFetch, apiRequest } from '@/lib/queryClient';
 import ProductPreviewModal from '@/components/modals/ProductPreviewModal';
 import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal';
 import WineLabel, {
+  downloadQrPng,
   downloadSvg,
   formatAbv,
   PACKAGING_GASES,
@@ -361,7 +362,8 @@ export default function ProductDetailPage() {
           <section className="rounded-[10px] border bg-card p-5 sm:p-6">
             <h2 className="text-base font-semibold">Bottle label</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              100 × 120 mm back label. The QR code opens this product's public passport.
+              100 × 120 mm back label. The QR code opens this product's public passport, with no login
+              needed.
             </p>
             <div className="mt-4 rounded-sm bg-muted p-4">
               <WineLabel
@@ -376,10 +378,19 @@ export default function ProductDetailPage() {
                 <Download className="mr-2 h-4 w-4" />
                 Download label (SVG)
               </Button>
-              <Button variant="outline" onClick={downloadQr}>
-                <QrCode className="mr-2 h-4 w-4" />
-                Download QR code (SVG)
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={downloadQr}>
+                  <QrCode className="mr-2 h-4 w-4" />
+                  QR (SVG)
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => downloadQrPng(dppUrl, `${product.name}-dpp-qr.png`)}
+                >
+                  <QrCode className="mr-2 h-4 w-4" />
+                  QR (PNG)
+                </Button>
+              </div>
               <Button variant="outline" asChild>
                 <a href={dppUrl.replace('?src=qr', '')} target="_blank" rel="noreferrer">
                   <ExternalLink className="mr-2 h-4 w-4" />

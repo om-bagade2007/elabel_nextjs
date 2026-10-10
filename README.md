@@ -24,7 +24,9 @@ A full-stack web application for managing wine products and ingredients with imp
 
 The app runs as one container; the database and login stay on Supabase.
 
-1. `cp .env.example .env` and fill it in. Two values matter most:
+1. `cp .env.example .env` (PowerShell: `Copy-Item .env.example .env`) and fill it in. `VITE_*` values
+   are baked into the browser bundle at build time; server secrets stay in `.env` at runtime. Two
+   values matter most:
    - `DATABASE_URL`: use the **Session pooler** string from Supabase → *Connect* → *Session pooler*
      (`postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres`).
      The direct `db.<ref>.supabase.co` host is IPv6-only, and Docker cannot reach it. This is what
@@ -38,7 +40,8 @@ The app runs as one container; the database and login stay on Supabase.
    docker compose up -d --build
    curl http://localhost:5000/api/health   # {"status":"ok"}
    ```
-   Uploaded images live in the `uploads` Docker volume. Update after a `git pull` with the same command.
+   Logs: `docker compose logs -f app`. Stop: `docker compose down`. Uploaded images live in the
+   `uploads` Docker volume. Update after a `git pull` with the same `up` command. Never commit `.env`.
 
 ### Wine label and QR code
 Each product page shows a 100 × 120 mm SVG back label (standard 750 ml bottle) filled from the

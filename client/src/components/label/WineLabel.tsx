@@ -24,11 +24,26 @@ export const PACKAGING_GASES: Record<string, string> = {
   bottled: 'Bottled in a protective atmosphere',
 };
 
+/** Public base URL (BASE_URL on the server), so QR codes work even when the dashboard runs on localhost. */
+export function useDppBase() {
+  const { data } = useQuery<{ publicUrl?: string }>({ queryKey: ['/api/config'] });
+  return (data?.publicUrl || window.location.origin).replace(/\/$/, '');
+}
+
 /** URL the printed QR code opens: the public DPP page. */
 export function useDppUrl(productId?: number) {
-  const { data } = useQuery<{ publicUrl?: string }>({ queryKey: ['/api/config'] });
-  const base = (data?.publicUrl || window.location.origin).replace(/\/$/, '');
+  const base = useDppBase();
   return productId ? `${base}/qr/product/${productId}?src=qr` : '';
+}
+
+/** High-resolution PNG of the QR code for printers that don't take SVG. */
+export async function downloadQrPng(url: string, filename: string) {
+  const a = document.createElement('a');
+  a.href = await QRCode.toDataURL(url, { width: 1000, margin: 2, errorCorrectionLevel: 'M' });
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 /** QR code as a single SVG path in module units (size x size). */

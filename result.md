@@ -136,6 +136,18 @@ this branch:
   - **Public page:** a "Where it was made" section with an OpenStreetMap link.
 - All checks were run again after the merge: typecheck, Docker build, browser pass, storage check.
 
+A second round landed on `main` at 17:28–17:45 and was merged too:
+- **Om's Docker setup** was combined with this one. It keeps his non-root `node` user,
+  `HOST=0.0.0.0`, `SUPABASE_SERVICE_KEY` and README notes. It also keeps the `dotenv` runtime fix
+  and the slim runtime stage from this branch. Without the `dotenv` fix his image would crash on start.
+- **Rohan's automatic public QR** was kept:
+  - the `/dpp/:id` and `/p/:id` short links
+  - "Public passport" and "Download QR code (PNG)" in the products menu
+  - a PNG QR download on the product page
+  - the "no external link needed" note in the form
+  The QR images are now generated locally instead of by api.qrserver.com, and they use `BASE_URL`.
+- **Rohan's richer preview modal** was kept as he wrote it, with design-token colors.
+
 ## 7. What the team still has to do
 
 1. **Rotate** the Supabase database password and the JWT secret. The old values are public in Git history.
