@@ -8,7 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
+const host = process.env.HOST || '0.0.0.0';
 
 // Configure middleware
 app.use(express.json());
@@ -30,7 +31,7 @@ app.get('*', (req: express.Request, res: express.Response, next: express.NextFun
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+app.listen(port, host, () => {
+  console.log(`Server is running at http://${host}:${port}`);
   console.log(`Serving static files from: ${publicDir}`);
 });

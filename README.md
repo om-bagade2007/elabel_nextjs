@@ -89,6 +89,43 @@ A full-stack web application for managing wine products and ingredients with imp
 
 The application will be available at `http://localhost:5000`
 
+## Docker deployment
+
+Docker builds the Vite frontend and Express production server into a multi-stage image. The
+database and Supabase services remain external; provide their credentials through `.env`.
+
+1. Copy the example environment file and set real values:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   On PowerShell, use `Copy-Item .env.example .env`.
+
+2. Ensure `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and (optionally)
+   `VITE_SENTRY_DSN` are set. These values are embedded into the browser bundle at image-build
+   time. Keep server-only secrets such as `DATABASE_URL` and `SUPABASE_SERVICE_KEY` in `.env`;
+   they are passed to the container only at runtime.
+
+3. Build and start the application:
+
+   ```bash
+   docker compose up --build -d
+   ```
+
+   Open `http://localhost:5000`. The application health endpoint is
+   `http://localhost:5000/api/health`.
+
+4. View logs or stop the service:
+
+   ```bash
+   docker compose logs -f app
+   docker compose down
+   ```
+
+Uploaded files are stored in the named `uploads` volume and survive container replacement.
+Do not commit `.env`; it is excluded by `.gitignore`.
+
 ## Development Commands
 
 - `npm run dev` - Start development server
