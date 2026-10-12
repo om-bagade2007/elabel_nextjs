@@ -32,7 +32,7 @@ export interface IStorage {
   getProducts(): Promise<Product[]>;
   getProduct(id: number, ownerId: string): Promise<Product | undefined>;
   getPublicProduct(id: number): Promise<Product | undefined>;
-  createProduct(product: InsertProduct): Promise<Product>;
+  createProduct(product: InsertProduct, baseUrl?: string): Promise<Product>;
   updateProduct(id: number, ownerId: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
   deleteProduct(id: number, ownerId: string): Promise<boolean>;
 
@@ -94,9 +94,19 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async createProduct(product: InsertProduct): Promise<Product> {
+  async createProduct(product: InsertProduct, baseUrl?: string): Promise<Product> {
     const result = await db.insert(products).values(product).returning();
-    return result[0];
+    const created = result[0];
+    if (created && !created.qrUrl && baseUrl) {
+      const qrUrl = `${baseUrl.replace(/\/$/, '')}/qr/product/${created.id}?src=qr`;
+      const [updated] = await db
+        .update(products)
+        .set({ qrUrl })
+        .where(eq(products.id, created.id))
+        .returning();
+      return updated || { ...created, qrUrl };
+    }
+    return created;
   }
 
   async updateProduct(
@@ -104,9 +114,13 @@ export class DatabaseStorage implements IStorage {
     ownerId: string,
     product: Partial<InsertProduct>,
   ): Promise<Product | undefined> {
+    // Preserve permanent qrUrl unless explicitly provided
+    const { qrUrl, ...updates } = product;
+    const updateData: Partial<InsertProduct> = qrUrl ? { ...updates, qrUrl } : updates;
+
     const result = await db
       .update(products)
-      .set(product)
+      .set(updateData)
       .where(and(eq(products.id, id), eq(products.ownerId, ownerId)))
       .returning();
     return result[0];

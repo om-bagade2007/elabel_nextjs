@@ -13,11 +13,6 @@ export default function EditIngredientPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  if (!ingredientId) {
-    setLocation('/ingredients');
-    return null;
-  }
-
   const { data: ingredient, isLoading } = useQuery({
     queryKey: ['/api/ingredients', ingredientId],
     queryFn: async () => {
@@ -48,6 +43,11 @@ export default function EditIngredientPage() {
       });
     },
   });
+
+  if (!ingredientId) {
+    setLocation('/ingredients');
+    return null;
+  }
 
   const handleSubmit = async (data: any) => {
     updateIngredientMutation.mutate(data);

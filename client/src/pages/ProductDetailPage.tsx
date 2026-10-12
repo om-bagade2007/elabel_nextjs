@@ -65,7 +65,7 @@ export default function ProductDetailPage() {
     queryFn: () => apiRequest(`/api/products/${params?.id}`),
     enabled: !!params?.id,
   });
-  const dppUrl = useDppUrl(product?.id);
+  const dppUrl = useDppUrl(product?.id, product?.qrUrl);
 
   const deleteProductMutation = useMutation({
     mutationFn: (id: number) => apiRequest(`/api/products/${id}`, { method: 'DELETE' }),
@@ -416,7 +416,7 @@ export default function ProductDetailPage() {
                 </Button>
               </div>
               <Button variant="outline" asChild>
-                <a href={dppUrl.replace('?src=qr', '')} target="_blank" rel="noreferrer">
+                <a href={dppUrl} target="_blank" rel="noreferrer">
                   <ExternalLink className="mr-2 h-4 w-4" />
                   Open public passport
                 </a>

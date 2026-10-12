@@ -90,6 +90,27 @@ const uploadBlob = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
+export function getRequestBaseUrl(req: express.Request): string {
+  const clientBase = (req.body as any)?.baseUrl;
+  if (typeof clientBase === 'string' && clientBase.trim()) {
+    return clientBase.trim().replace(/\/$/, '');
+  }
+  const origin = req.headers.origin || req.headers.referer;
+  if (origin && typeof origin === 'string') {
+    try {
+      const u = new URL(origin);
+      return `${u.protocol}//${u.host}`;
+    } catch {}
+  }
+  if (process.env.BASE_URL) {
+    return process.env.BASE_URL.replace(/\/$/, '');
+  }
+  if (process.env.RENDER_EXTERNAL_URL) {
+    return process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '');
+  }
+  return 'https://wine-label-management-system.onrender.com';
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files statically
   app.use('/uploads', express.static(uploadsDir));
@@ -455,11 +476,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const product = await storage.createProduct({
-        ...validatedData,
-        createdBy: undefined,
-        ownerId: getAuthenticatedUserId(req),
-      });
+      const baseUrl = getRequestBaseUrl(req);
+      const product = await storage.createProduct(
+        {
+          ...validatedData,
+          createdBy: undefined,
+          ownerId: getAuthenticatedUserId(req),
+        },
+        baseUrl
+      );
       return res.status(201).json(product);
     } catch (error) {
       console.error('Product creation failed:', error);
@@ -472,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const validatedData = insertProductSchema
         .partial()
-        .omit({ createdBy: true, ownerId: true })
+        .omit({ createdBy: true, ownerId: true, qrUrl: true })
         .parse(req.body);
 
       // Sync latitude / longitude and manufacturingLatitude / manufacturingLongitude
@@ -552,8 +577,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (product.imageUrl) {
-        // Delete the image file from disk
-        const imagePath = path.join(process.cwd(), product.imageUrl);
+        // Delete the image file from disk if stored in local uploads
+        const filename = path.basename(product.imageUrl);
+        const imagePath = path.join(uploadsDir, filename);
         if (fs.existsSync(imagePath)) {
           fs.unlinkSync(imagePath);
         }
@@ -763,11 +789,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          const product = await storage.createProduct({
-            ...result.data,
-            createdBy: undefined,
-            ownerId: getAuthenticatedUserId(req),
-          });
+          const baseUrl = getRequestBaseUrl(req);
+          const product = await storage.createProduct(
+            {
+              ...result.data,
+              createdBy: undefined,
+              ownerId: getAuthenticatedUserId(req),
+            },
+            baseUrl
+          );
           importedProducts.push(product);
           console.log(`Successfully imported product: ${product.name}`);
         } catch (error) {

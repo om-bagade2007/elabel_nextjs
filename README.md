@@ -97,9 +97,7 @@ explains every variable. The ones that matter most:
 | `BASE_URL` | The public address of the site, e.g. `https://wine-label-management-system.onrender.com`. |
 | `SCANS_EXPORT_KEY` | Optional. Any secret string. It turns on the scan-location export (`/api/scans.geojson`). Leave it empty to keep the export off. |
 
-**QR codes never contain localhost.** A QR uses the first public address among `BASE_URL`, the
-address the dashboard is opened on, and the live site above. A QR made on a local copy therefore
-still opens on the live site, which shares the same database.
+**Permanent QR Codes Stored in Database.** When a product is created, its QR code / Digital Product Passport URL is permanently generated using the base URL/origin through which it was created (e.g. `https://wine-label-management-system.onrender.com` on Render, or `http://localhost:5000` locally/Docker) and stored in `products.qr_url` in PostgreSQL. It never changes even if the dashboard is accessed from a different host, ensuring physical bottle labels and digital passports stay 100% immutable and compliant with EU wine regulations.
 
 **Database changes apply themselves.** On start, the server runs the re-runnable SQL files in
 `server/db/` (`server/migrate.ts`); the log shows `Database schema is up to date`. Only
@@ -151,8 +149,13 @@ updates. Never commit `.env`.
 ### Sentry (error monitoring)
 1. Create a free account at https://sentry.io. Create a **React** project, and copy its **DSN**
    (*Project Settings → Client Keys (DSN)*).
-2. Set `VITE_SENTRY_DSN=<that DSN>` in Render's *Environment*, or in `.env` for Docker. Deploy or
-   rebuild: the DSN is built into the page, so it only takes effect after a new build.
+2. In Render's *Environment* (or `.env` for Docker), set both:
+   - `VITE_SENTRY_DSN=<that DSN>` for browser errors. It is built into the page, so it only
+     takes effect after a new build.
+   - `SENTRY_DSN=<that DSN>` for server errors (`server/production.ts`). It takes effect on the
+     next restart.
+
+   Then deploy again.
 3. Optional, readable stack traces: create an auth token (*Settings → Auth Tokens*, scope
    `project:releases`), and set `SENTRY_AUTH_TOKEN` in Render. Source maps then upload during
    the build. The Sentry org and project names are set in `vite.config.ts` (`canspirit-ai` /
@@ -163,12 +166,13 @@ updates. Never commit `.env`.
    - [ ] Open the live site, open the browser console (F12), and run
      `setTimeout(() => { throw new Error('Sentry test') })`.
    - [ ] Within a minute, Sentry → *Issues* shows "Sentry test" with the site's address.
+   - [ ] Server side: Render *Environment* has `SENTRY_DSN`, and after the restart a server error
+     (for example, saving a product while the database is unreachable) appears in *Issues*.
    - [ ] If `SENTRY_AUTH_TOKEN` is set: the issue's stack trace shows real file names
      (e.g. `PublicProductPage.tsx`), not only `index-….js`.
 
-Limit: Sentry currently reports **browser** errors only. The server sends errors to Sentry only in
-the dev server (`server/index.ts`, via `SENTRY_DSN`), not in the production server
-(`server/production.ts`) that Render and Docker run.
+Both the browser (via `VITE_SENTRY_DSN`) and backend Express server (via `SENTRY_DSN`) report
+unhandled errors and exceptions to Sentry in development and production (`server/production.ts`).
 
 ## Local development
 

@@ -168,6 +168,8 @@ function useToast() {
 
   React.useEffect(() => {
     listeners.push(setState);
+    // Pick up toasts fired before this listener subscribed (e.g. by a page's first effect)
+    setState(memoryState);
     return () => {
       const index = listeners.indexOf(setState);
       if (index > -1) {

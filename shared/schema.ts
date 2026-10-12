@@ -68,6 +68,7 @@ export const products = pgTable('products', {
   externalLink: text('external_link'),
   redirectLink: text('redirect_link'),
   imageUrl: text('image_url'),
+  qrUrl: text('qr_url'),
   ingredientIds: integer('ingredient_ids').array(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -185,6 +186,7 @@ export const insertProductSchema = z.object({
   externalLink: z.string().optional(),
   redirectLink: z.string().optional(),
   imageUrl: z.string().optional(),
+  qrUrl: z.string().optional().nullable(),
   ingredientIds: z.array(z.number().int()).optional(),
   createdBy: z.number().optional(),
   ownerId: z.string().uuid().optional(),
@@ -268,6 +270,7 @@ export const importProductSchema = z.object({
   externalLink: z.string().optional(),
   redirectLink: z.string().optional(),
   imageUrl: z.string().optional(),
+  qrUrl: z.string().optional().nullable(),
   createdBy: z.number().optional(),
   ownerId: z.string().uuid().optional(),
 });

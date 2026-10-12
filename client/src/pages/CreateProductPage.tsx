@@ -48,7 +48,7 @@ export default function CreateProductPage() {
   });
 
   const handleSubmit = async (data: any) => {
-    createProductMutation.mutate(data);
+    createProductMutation.mutate({ ...data, baseUrl: window.location.origin });
   };
 
   const handleCancel = () => {

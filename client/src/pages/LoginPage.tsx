@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +30,17 @@ export default function LoginPage() {
   const { loginWithPassword } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('expired=1')) {
+      toast({
+        title: 'Session Expired',
+        description: 'Your session has expired. Please log in again to continue.',
+        variant: 'destructive',
+      });
+      window.history.replaceState({}, '', '/login');
+    }
+  }, [toast]);
+
 
   const passwordForm = useForm<PasswordFormData>({
     resolver: zodResolver(passwordSchema),

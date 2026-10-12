@@ -128,10 +128,10 @@ export const useAuth = create<AuthState>()(
             .from('profiles')
             .select('*')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
           if (error) {
-            console.error('Error fetching profile:', error);
+            console.warn('Profile not found or table not initialized:', error.message || error);
             return;
           }
 
