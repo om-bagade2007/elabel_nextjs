@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { usableQrUrl } from '@shared/publicUrl';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import type { Product, ProductWithIngredients, Ingredient } from '@shared/schema';
@@ -348,16 +349,16 @@ export default function ProductPreviewModal({
                 <h4 className="font-medium mb-2">Packaging Gases</h4>
                 <p className="text-sm text-muted-foreground">{product.packagingGases || 'Not specified'}</p>
               </div>
-              {product.qrUrl && (
+              {usableQrUrl(product.qrUrl) && (
                 <div className="col-span-2">
                   <h4 className="font-medium mb-2">Public Passport Link (Permanent QR)</h4>
                   <a
-                    href={product.qrUrl}
+                    href={usableQrUrl(product.qrUrl)!}
                     target="_blank"
                     rel="noreferrer"
                     className="text-sm text-primary hover:underline flex items-center gap-1.5 break-all"
                   >
-                    {product.qrUrl}
+                    {usableQrUrl(product.qrUrl)}
                     <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
                   </a>
                 </div>

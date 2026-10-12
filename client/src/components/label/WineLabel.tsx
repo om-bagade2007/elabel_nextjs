@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import QRCode from 'qrcode';
 import { useQuery } from '@tanstack/react-query';
 import type { ProductWithIngredients } from '@shared/schema';
+import { publicBase, qrUrlFor, usableQrUrl } from '@shared/publicUrl';
 
 // Standard 750 ml Bordeaux back label: 100 x 120 mm (~42% of a 236 mm circumference).
 // All coordinates are millimetres. Positions are fixed, so an empty field leaves blank space.
@@ -24,33 +25,29 @@ export const PACKAGING_GASES: Record<string, string> = {
   bottled: 'Bottled in a protective atmosphere',
 };
 
-export const PRODUCTION_URL = 'https://wine-label-management-system.onrender.com';
+export { PRODUCTION_URL } from '@shared/publicUrl';
 
 /**
- * Resolves the public base URL for QR codes and DPP passport links.
- * Always resolves to the exact origin through which the user is accessing the application
- * (e.g. localhost during local dev, container host in Docker, or the Render production URL),
- * ensuring the QR code and public passport links always match the environment where they were created.
+ * Base URL for QR codes and passport links: the address the app is opened on (localhost dev,
+ * Docker host or Render), then BASE_URL, then the live site. Never localhost: see shared/publicUrl.
  */
 export function pickPublicBase(publicUrl?: string, origin?: string) {
   const currentOrigin =
     origin || (typeof window !== 'undefined' && window.location?.origin ? window.location.origin : '');
-  const base = currentOrigin || publicUrl || PRODUCTION_URL;
-  return base.replace(/\/$/, '');
+  return publicBase(currentOrigin, publicUrl);
 }
 
-/** Public base URL for QR codes, matching the origin currently accessed by the user. */
+/** Public base URL for QR codes. */
 export function useDppBase() {
   const { data } = useQuery<{ publicUrl?: string }>({ queryKey: ['/api/config'] });
   const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : undefined;
   return pickPublicBase(data?.publicUrl, origin);
 }
 
-/** URL the printed QR code opens: the public DPP page. Prefers permanent stored qrUrl from database. */
+/** URL the printed QR code opens: the stored permanent QR address, unless it is a localhost one. */
 export function useDppUrl(productId?: number, storedQrUrl?: string | null) {
   const base = useDppBase();
-  if (storedQrUrl) return storedQrUrl;
-  return productId ? `${base}/qr/product/${productId}?src=qr` : '';
+  return usableQrUrl(storedQrUrl) || (productId ? qrUrlFor(base, productId) : '');
 }
 
 /** High-resolution PNG of the QR code for printers that don't take SVG. */
@@ -139,7 +136,7 @@ const OPERATOR_LABEL: Record<string, string> = {
 type Props = { product: ProductWithIngredients; qrUrl: string; className?: string };
 
 const WineLabel = forwardRef<SVGSVGElement, Props>(({ product: p, qrUrl, className }, ref) => {
-  const effectiveQr = qrUrl || p.qrUrl;
+  const effectiveQr = qrUrl || usableQrUrl(p.qrUrl);
   const qr = effectiveQr ? qrPath(effectiveQr) : null;
   const inner = W - PAD * 2;
 

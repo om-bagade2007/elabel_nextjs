@@ -10,6 +10,7 @@ const FILES = [
   'add_manufacturing_columns.sql',
   'add_ingredients_and_scans.sql',
   'add_qr_url_column.sql',
+  'fix_local_qr_urls.sql',
 ];
 
 export async function ensureSchema(url = process.env.DATABASE_URL) {

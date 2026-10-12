@@ -1,5 +1,6 @@
 import { Eye, Edit, MoreVertical, Copy, Trash2, FileText, ExternalLink, Download } from 'lucide-react';
 import { downloadQrPng, useDppBase } from '@/components/label/WineLabel';
+import { qrUrlFor, usableQrUrl } from '@shared/publicUrl';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -104,7 +105,7 @@ export default function ProductsTable({
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => {
-                        const url = product.qrUrl || `${dppBase}/qr/product/${product.id}?src=qr`;
+                        const url = usableQrUrl(product.qrUrl) || qrUrlFor(dppBase, product.id);
                         window.open(url, '_blank');
                       }}
                     >
@@ -113,7 +114,7 @@ export default function ProductsTable({
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => {
-                        const url = product.qrUrl || `${dppBase}/qr/product/${product.id}?src=qr`;
+                        const url = usableQrUrl(product.qrUrl) || qrUrlFor(dppBase, product.id);
                         downloadQrPng(url, `${fileSafe(product.name)}-dpp-qr.png`);
                       }}
                     >

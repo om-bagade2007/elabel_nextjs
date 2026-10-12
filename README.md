@@ -96,7 +96,7 @@ explains every variable. The ones that matter most:
 | `BASE_URL` | The public address of the site, e.g. `https://wine-label-management-system.onrender.com`. |
 | `SCANS_EXPORT_KEY` | Optional. Any secret string. It turns on the scan-location export (`/api/scans.geojson`). Leave it empty to keep the export off. |
 
-**Permanent QR Codes Stored in Database.** When a product is created, its QR code / Digital Product Passport URL is permanently generated using the base URL/origin through which it was created (e.g. `https://wine-label-management-system.onrender.com` on Render, or `http://localhost:5000` locally/Docker) and stored in `products.qr_url` in PostgreSQL. It never changes even if the dashboard is accessed from a different host, ensuring physical bottle labels and digital passports stay 100% immutable and compliant with EU wine regulations.
+**QR codes are permanent and never localhost.** When a product is created, its QR / passport address is saved in `products.qr_url` and never changes afterwards, so printed labels keep working. The address uses the first public one of: the address the dashboard is opened on, `BASE_URL`, Render's own address, or the live site `https://wine-label-management-system.onrender.com`. It is never `localhost`, because a phone can't open that; the rule lives in `shared/publicUrl.ts`. All copies share one database, so a product created on a local copy gets a live-site QR that works. Any saved localhost address is repaired on the next start (`server/db/fix_local_qr_urls.sql`).
 
 **Database changes apply themselves.** On start, the server runs the re-runnable SQL files in
 `server/db/` (`server/migrate.ts`); the log shows `Database schema is up to date`. Only
@@ -184,6 +184,7 @@ npm run dev             # http://localhost:5000
 | `npm run lint` / `npm run format` | ESLint / Prettier |
 | `npm run db:push` | Push `shared/schema.ts` to a database (not needed for normal use) |
 | `npm run check:storage` | Ingredient and scan storage check. **Run against a test database only.** |
+| `npm run check:qr` | QR addresses never contain localhost (no database needed) |
 | `npm run check:migrate` | Startup-migration check against an old-schema database. **Test database only.** |
 
 There is no `npm test` suite yet. `npm test` only prints a message.
@@ -296,7 +297,7 @@ was fixed and what is left).
 | Problem | Cause and fix |
 |---|---|
 | "Failed to create product" | The database is missing columns. Redeploy: they are added on start. Check the log for `Database schema is up to date`. |
-| QR opens `localhost` | The QR was downloaded from an old version. Redeploy, download it again and reprint. Set `BASE_URL` to the public address. |
+| QR opens `localhost` | The QR image was downloaded before this fix. Redeploy (saved localhost addresses are repaired on start), download the QR again and reprint. |
 | Docker: `getaddrinfo ENOTFOUND db.….supabase.co` | `DATABASE_URL` uses the IPv6-only direct host. Use the Session pooler string. |
 | Blank page after a Docker build | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` were empty at build time. Fill `.env` and rebuild. |
 | Location stays empty | The browser blocked location, and the IP services were unreachable. Use **Find coordinates**, or type the address. |

@@ -8,6 +8,7 @@ import {
   importProductSchema,
   insertScanSchema,
 } from '@shared/schema';
+import { publicBase } from '@shared/publicUrl';
 import multer from 'multer';
 import { put } from '@vercel/blob';
 import path from 'path';
@@ -90,25 +91,24 @@ const uploadBlob = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
+/** Base for a product's permanent QR address: first public one of the client's origin, the
+ *  request's Origin/Referer, BASE_URL, RENDER_EXTERNAL_URL, else the live site. Never localhost. */
 export function getRequestBaseUrl(req: express.Request): string {
   const clientBase = (req.body as any)?.baseUrl;
-  if (typeof clientBase === 'string' && clientBase.trim()) {
-    return clientBase.trim().replace(/\/$/, '');
-  }
+  let headerOrigin: string | undefined;
   const origin = req.headers.origin || req.headers.referer;
   if (origin && typeof origin === 'string') {
     try {
       const u = new URL(origin);
-      return `${u.protocol}//${u.host}`;
+      headerOrigin = `${u.protocol}//${u.host}`;
     } catch {}
   }
-  if (process.env.BASE_URL) {
-    return process.env.BASE_URL.replace(/\/$/, '');
-  }
-  if (process.env.RENDER_EXTERNAL_URL) {
-    return process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '');
-  }
-  return 'https://wine-label-management-system.onrender.com';
+  return publicBase(
+    typeof clientBase === 'string' ? clientBase : undefined,
+    headerOrigin,
+    process.env.BASE_URL,
+    process.env.RENDER_EXTERNAL_URL,
+  );
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
