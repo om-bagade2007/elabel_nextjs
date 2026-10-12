@@ -1,5 +1,17 @@
 import { useState, useRef } from 'react';
-import { ArrowLeft, Download, Copy, Edit, Trash2, Eye, QrCode, Upload, ExternalLink, MapPin } from 'lucide-react';
+import {
+  ArrowLeft,
+  Download,
+  Copy,
+  Edit,
+  Trash2,
+  Eye,
+  QrCode,
+  Upload,
+  ExternalLink,
+  MapPin,
+  Printer,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +24,7 @@ import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal
 import WineLabel, {
   downloadQrPng,
   downloadSvg,
+  printSvg,
   formatAbv,
   PACKAGING_GASES,
   qrPath,
@@ -381,6 +394,13 @@ export default function ProductDetailPage() {
               <Button onClick={() => labelRef.current && downloadSvg(labelRef.current, `${product.name}-label.svg`)}>
                 <Download className="mr-2 h-4 w-4" />
                 Download label (SVG)
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => labelRef.current && printSvg(labelRef.current, `${product.name} label`)}
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                Print label
               </Button>
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="outline" onClick={downloadQr}>

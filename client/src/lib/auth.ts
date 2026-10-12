@@ -8,7 +8,6 @@ interface AuthState {
   user: User | null;
   profile: Profile | null;
   isAuthenticated: boolean;
-  loginWithMagicLink: (email: string) => Promise<{ success: boolean; error?: string }>;
   loginWithPassword: (
     email: string,
     password: string,
@@ -28,27 +27,6 @@ export const useAuth = create<AuthState>()(
       user: null,
       profile: null,
       isAuthenticated: false,
-      loginWithMagicLink: async (email: string) => {
-        try {
-          console.log('Attempting magic link login for:', email);
-          const { error } = await supabase.auth.signInWithOtp({
-            email,
-            options: {
-              emailRedirectTo: `${window.location.origin}/auth/callback`,
-            },
-          });
-
-          if (error) {
-            console.error('Magic link login error:', error);
-            return { success: false, error: error.message };
-          }
-
-          return { success: true };
-        } catch (error: any) {
-          console.error('Magic link login error:', error);
-          return { success: false, error: error.message || 'Login failed' };
-        }
-      },
       loginWithPassword: async (email: string, password: string) => {
         try {
           console.log('Attempting password login for:', email);

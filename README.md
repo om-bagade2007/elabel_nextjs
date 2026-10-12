@@ -36,13 +36,13 @@ Live site: https://wine-label-management-system.onrender.com
   device's GPS, with an IP-address fallback, an address search and manual entry. All services are
   free and need no API key; see [Location services](#location-services).
 - **QR scan locations (optional):** when a shopper allows it, the location of each QR scan is stored.
-- **Login:** Supabase Auth (password or magic link). Everyone can see all products; only the owner
-  can edit or delete one.
+- **Login:** Supabase Auth with email and password (the eye button shows the password). Everyone can
+  see all products; only the owner can edit or delete one.
 
 ## How to use it: step by step
 
 **1. Log in.** Open the site, click **Log in to the dashboard**, and sign in with your email and
-password, or a magic link sent by email. New users register first.
+password. Click the eye button to check what you typed. New users click **Register** first.
 
 **2. Add your ingredients once.** Go to **Ingredients**, then **New ingredient**. Enter the name,
 category and E-number (e.g. `E220`), and tick any allergens in the *Allergens* box (e.g. Sulphites).
@@ -68,12 +68,13 @@ Click **Create product**. Fields you leave empty stay blank on the label.
 - **Preview on map** opens the coordinates in Google Maps.
 
 **5. Get the label and QR code.** Open the product. The **Bottle label** panel shows the 100 × 120 mm label.
-- **Download label (SVG)** for printing; the label is true to size.
+- **Print label** prints it straight away at true size (100 × 120 mm, one label per page).
+- **Download label (SVG)** saves it for a print shop or a label printer.
 - **QR (SVG)** or **QR (PNG)** for the QR code alone. PNG files are 1000 × 1000 px.
 - **Open public passport** to see what shoppers see. On the Products list, the **⋮** menu also has
   **Public passport** and **Download QR code (PNG)**.
 
-**6. Print and check.** Print the label at 100 % scale, without "fit to page". Scan the QR with a phone:
+**6. Print and check.** In the print dialog, keep the scale at 100 % (not "fit to page"). Scan the QR with a phone:
 it must open `https://wine-label-management-system.onrender.com/qr/product/<id>` and show the wine.
 
 **7. Edit later.** Open the product and click **Edit**. Changes show on the passport straight away.
@@ -303,6 +304,7 @@ was fixed and what is left).
 | Docker: `getaddrinfo ENOTFOUND db.….supabase.co` | `DATABASE_URL` uses the IPv6-only direct host. Use the Session pooler string. |
 | Blank page after a Docker build | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` were empty at build time. Fill `.env` and rebuild. |
 | Location stays empty | The browser blocked location, and the IP services were unreachable. Use **Find coordinates**, or type the address. |
+| Sign-up or password-reset email opens `localhost:3000` | Supabase's *Site URL* is still the dev address. In Supabase → *Authentication* → *URL Configuration*, set **Site URL** to `https://wine-label-management-system.onrender.com`, and add `https://wine-label-management-system.onrender.com/**` under **Redirect URLs**. |
 | Render build fails on `vite` or `esbuild` | Use the build command `npm install --include=dev && npm run build`. |
 
 ## Contributing

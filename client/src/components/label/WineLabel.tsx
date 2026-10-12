@@ -245,8 +245,8 @@ const WineLabel = forwardRef<SVGSVGElement, Props>(({ product: p, qrUrl, classNa
 WineLabel.displayName = 'WineLabel';
 export default WineLabel;
 
-/** Save the rendered label as a standalone .svg (pictograms inlined). */
-export async function downloadSvg(svg: SVGSVGElement, filename: string) {
+/** The rendered label as standalone SVG markup (pictograms inlined), for download and print. */
+async function standaloneSvg(svg: SVGSVGElement) {
   const clone = svg.cloneNode(true) as SVGSVGElement;
   clone.removeAttribute('class');
   for (const img of Array.from(clone.querySelectorAll('image'))) {
@@ -255,7 +255,12 @@ export async function downloadSvg(svg: SVGSVGElement, filename: string) {
     const text = await fetch(href).then((r) => r.text());
     img.setAttribute('href', `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(text)))}`);
   }
-  const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml' });
+  return new XMLSerializer().serializeToString(clone);
+}
+
+/** Save the rendered label as a standalone .svg. */
+export async function downloadSvg(svg: SVGSVGElement, filename: string) {
+  const blob = new Blob([await standaloneSvg(svg)], { type: 'image/svg+xml' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = filename;
@@ -264,4 +269,27 @@ export async function downloadSvg(svg: SVGSVGElement, filename: string) {
   a.remove();
   // Revoking synchronously can cancel the download in Chromium
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+
+/** Print the label at true size (100 x 120 mm) from a hidden frame, so no pop-up is needed. */
+export async function printSvg(svg: SVGSVGElement, title: string) {
+  const markup = await standaloneSvg(svg);
+  const frame = document.createElement('iframe');
+  frame.setAttribute('aria-hidden', 'true');
+  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  document.body.appendChild(frame);
+  const doc = frame.contentDocument!;
+  doc.open();
+  doc.write(
+    '<!doctype html><html><head><meta charset="utf-8">' +
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gloock&family=Public+Sans:wght@400;500;600;700&display=swap">' +
+      `<style>@page{size:${W}mm ${H}mm;margin:0}html,body{margin:0}svg{display:block;width:${W}mm;height:${H}mm}</style>` +
+      `</head><body>${markup}</body></html>`,
+  );
+  doc.close();
+  doc.title = title;
+  await Promise.race([doc.fonts.ready, new Promise((r) => setTimeout(r, 1500))]);
+  frame.contentWindow!.focus();
+  frame.contentWindow!.print();
+  setTimeout(() => frame.remove(), 60000);
 }
